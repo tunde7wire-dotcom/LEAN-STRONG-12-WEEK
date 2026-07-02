@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from "react";
-import { Upload, FileText, Trash2, Eye, ShieldCheck, CheckCircle, Info, Sparkles, ChefHat } from "lucide-react";
+import { Upload, FileText, Trash2, Eye, ShieldCheck, CheckCircle, Info } from "lucide-react";
 import { StoredPDF, WeekPlan } from "../types";
 import { getPDF, savePDF, deletePDF, loadFromLocalStorage, saveToLocalStorage } from "../utils/db";
 import PDFViewer from "./PDFViewer";
@@ -14,26 +14,12 @@ interface MealsTabProps {
   weekPlan: WeekPlan;
 }
 
-const DEFAULT_PREP_NOTES_PLACEHOLDER = `SCIENCE-BASED PREP HYPOTHESIS:
-- MOISTURE CONTROL: Pat chicken, steak, or tofu completely dry before searing. Pre-salt proteins 12-24 hours ahead of cooking to denature muscle fibers, allowing cells to hold up to 10% more water throughout the heat phase.
-- FLAVOR ARCHITECTURE: Leverage chemical synergies. Pair citric acids (lemon/lime) with capsaicin and black pepper to expand blood vessels on the tongue, amplifying the perception of seasoning without adding trace sodium or unnecessary calories.
-- TEXTURE PRESERVATION: Store cooked rice and tubers with a tight silicone vacuum-lock. This slows down starch retrogradation (crystallization) so meals retain a fresh, moist mouthfeel upon reheating.`;
-
 export default function MealsTab({ selectedWeekNum, weekPlan }: MealsTabProps) {
   const [storedPdf, setStoredPdf] = useState<StoredPDF | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isFullscreenPdf, setIsFullscreenPdf] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Prep notes state (saved per week)
-  const prepNotesKey = `lean_strong_prep_notes_W${selectedWeekNum}`;
-  const [prepNotes, setPrepNotes] = useState(() => loadFromLocalStorage<string>(prepNotesKey, ""));
-
-  // Auto-save prep notes
-  useEffect(() => {
-    saveToLocalStorage(prepNotesKey, prepNotes);
-  }, [prepNotes, prepNotesKey]);
 
   // Load PDF for the selected week from IndexedDB
   useEffect(() => {
@@ -114,7 +100,7 @@ export default function MealsTab({ selectedWeekNum, weekPlan }: MealsTabProps) {
       </div>
 
       {/* PDF Upload Area / Previewer Section */}
-      <div className="apple-card p-5 mb-6">
+      <div className="apple-card p-5">
         <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-400 mb-3 flex items-center gap-1.5">
           <FileText className="w-4 h-4 text-white" />
           Week {selectedWeekNum} PDF Meal Plan
@@ -144,26 +130,25 @@ export default function MealsTab({ selectedWeekNum, weekPlan }: MealsTabProps) {
 
             {/* Inline PDF Viewer */}
             <div className="mb-4">
-              <PDFViewer dataUrl={storedPdf.dataUrl} fileName={storedPdf.fileName} />
-            </div>
-
-            {/* Open PDF Link */}
-            <button
-              id="meals-btn-open-pdf"
-              onClick={() => setIsFullscreenPdf(true)}
-              className="w-full flex items-center justify-center gap-2 border border-white/10 text-white font-bold text-xs py-3 rounded-xl hover:bg-white/5 hover:border-white/20 transition-all uppercase tracking-wider font-mono"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              Open PDF Plan
-            </button>
-            
-            {isFullscreenPdf && (
               <PDFViewer 
                 dataUrl={storedPdf.dataUrl} 
                 fileName={storedPdf.fileName} 
-                isFullscreen={true} 
-                onClose={() => setIsFullscreenPdf(false)} 
+                isFullscreen={isFullscreenPdf}
+                onOpenFullscreen={() => setIsFullscreenPdf(true)}
+                onClose={() => setIsFullscreenPdf(false)}
               />
+            </div>
+
+            {/* Open PDF Link */}
+            {!isFullscreenPdf && (
+              <button
+                id="meals-btn-open-pdf"
+                onClick={() => setIsFullscreenPdf(true)}
+                className="w-full flex items-center justify-center gap-2 border border-white/10 text-white font-bold text-xs py-3 rounded-xl hover:bg-white/5 hover:border-white/20 transition-all uppercase tracking-wider font-mono"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                Open PDF Plan
+              </button>
             )}
           </div>
         ) : (
@@ -200,37 +185,6 @@ export default function MealsTab({ selectedWeekNum, weekPlan }: MealsTabProps) {
             <span>{uploadError}</span>
           </div>
         )}
-      </div>
-
-      {/* Science-Based Cooking Prep Engineering section */}
-      <div className="apple-card p-5">
-        <div className="flex justify-between items-center mb-3">
-          <div className="flex items-center gap-2">
-            <ChefHat className="w-4 h-4 text-white" />
-            <h3 className="text-sm font-bold uppercase tracking-tight text-white">Kitchen Lab Prep Log</h3>
-          </div>
-          {prepNotes.trim() && (
-            <span className="text-[10px] font-mono text-zinc-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded uppercase tracking-wider font-bold">
-              Draft Saved
-            </span>
-          )}
-        </div>
-
-        <textarea
-          id="textarea-prep-notes"
-          value={prepNotes}
-          onChange={(e) => setPrepNotes(e.target.value)}
-          placeholder={DEFAULT_PREP_NOTES_PLACEHOLDER}
-          rows={8}
-          className="w-full text-xs font-mono placeholder:text-zinc-600 bg-white/5 text-white rounded-xl leading-relaxed p-3 focus:ring-1 focus:ring-white border border-white/10"
-        />
-
-        <div className="mt-3.5 flex items-start gap-2 bg-white/5 p-3 rounded-xl border border-white/10">
-          <Sparkles className="w-4 h-4 text-white flex-shrink-0 mt-0.5" />
-          <p className="text-[10px] text-zinc-400 leading-relaxed font-sans">
-            <strong>Culinary Bio-Hacking Tip:</strong> High-temperature grilling creates advanced glycation end products. Use low-temp sous vide or convection ovens for meats to preserve natural cellular structure and optimal digestability.
-          </p>
-        </div>
       </div>
     </div>
   );

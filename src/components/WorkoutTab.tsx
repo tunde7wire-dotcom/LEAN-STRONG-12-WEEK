@@ -396,8 +396,8 @@ export default function WorkoutTab({
         <div className="mt-6 apple-card p-5">
           <div className="flex justify-between items-start mb-2">
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase text-zinc-500 tracking-wider">High Intensity Finisher</span>
-              <h4 className="text-sm font-bold text-white mt-0.5">Bike Finisher</h4>
+              <span className="text-[10px] font-mono font-bold uppercase text-zinc-500 tracking-wider">Optional Conditioning</span>
+              <h4 className="text-sm font-bold text-white mt-0.5">Gym Cardio Finisher</h4>
             </div>
             <button
               id="btn-toggle-bike-finisher"
@@ -412,6 +412,11 @@ export default function WorkoutTab({
           <p className="text-xs text-zinc-400 leading-relaxed mt-2">
             {dayPlan.bikeFinisher}
           </p>
+          {dayPlan.finisherSupportingLabel && (
+            <p className="text-[10px] text-zinc-500 leading-relaxed mt-2 italic">
+              {dayPlan.finisherSupportingLabel}
+            </p>
+          )}
         </div>
       )}
 

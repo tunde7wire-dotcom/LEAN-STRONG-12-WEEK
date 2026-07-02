@@ -22,6 +22,7 @@ export interface DayPlan {
   isTrainingDay: boolean;
   exercises: Exercise[];
   bikeFinisher?: string;
+  finisherSupportingLabel?: string;
 }
 
 export interface WeekPlan {

@@ -231,7 +231,8 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           category: "core"
         }
       ],
-      bikeFinisher: isDeload ? undefined : "Bike Finisher: 10 mins of high intensity intervals (30s sprint, 30s light pedal)"
+      bikeFinisher: isDeload ? undefined : "8 minutes total on the stationary bike or elliptical: 1 min easy, then 6 rounds of 20 sec hard / 40 sec easy, followed by 1 min easy. Keep hard intervals controlled at RPE 8/10, not all-out.",
+      finisherSupportingLabel: weekNumber <= 2 && !isDeload ? "Skip during Weeks 1–2 or whenever recovery, energy, or time is limited." : undefined
     },
     {
       dayName: "Friday",

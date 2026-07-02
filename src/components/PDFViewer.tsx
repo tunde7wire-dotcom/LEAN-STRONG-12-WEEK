@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
-import { ZoomIn, ZoomOut, Maximize, ChevronLeft, ChevronRight, X, Maximize2 } from "lucide-react";
+import { ZoomIn, ZoomOut, Maximize, Minimize2, ChevronLeft, ChevronRight, X } from "lucide-react";
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
@@ -12,17 +12,20 @@ interface PDFViewerProps {
   fileName: string;
   isFullscreen?: boolean;
   onClose?: () => void;
+  onOpenFullscreen?: () => void;
 }
 
 const MIN_SCALE = 0.2;
 const MAX_SCALE = 3.0;
 const ZOOM_STEP = 0.1;
 
-export default function PDFViewer({ dataUrl, fileName, isFullscreen = false, onClose }: PDFViewerProps) {
+export default function PDFViewer({ dataUrl, fileName, isFullscreen = false, onClose, onOpenFullscreen }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
-  const [scale, setScale] = useState<number>(1);
-  const [fitScale, setFitScale] = useState<number | null>(null);
+  
+  const [zoomMode, setZoomMode] = useState<'fit-page' | 'manual'>('fit-page');
+  const [manualScale, setManualScale] = useState<number>(1);
+  const [fitScale, setFitScale] = useState<number>(1);
   
   const [pageWidth, setPageWidth] = useState<number>(0);
   const [pageHeight, setPageHeight] = useState<number>(0);
@@ -34,9 +37,12 @@ export default function PDFViewer({ dataUrl, fileName, isFullscreen = false, onC
   const initialPinchDist = useRef<number | null>(null);
   const baseScale = useRef<number>(1);
 
+  const effectiveScale = zoomMode === 'fit-page' ? fitScale : manualScale;
+
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages);
     setPageNumber(1);
+    setZoomMode('fit-page');
   }
 
   function onPageLoadSuccess(page: any) {
@@ -45,7 +51,6 @@ export default function PDFViewer({ dataUrl, fileName, isFullscreen = false, onC
     setPageWidth(originalWidth);
     setPageHeight(originalHeight);
     
-    // Calculate fit scale
     doFitPage(originalWidth, originalHeight);
   }
 
@@ -54,7 +59,7 @@ export default function PDFViewer({ dataUrl, fileName, isFullscreen = false, onC
     
     const { clientWidth, clientHeight } = containerRef.current;
     const paddingX = isFullscreen ? 32 : 16;
-    const paddingY = isFullscreen ? 120 : 32; // more padding top/bottom in fullscreen for toolbars
+    const paddingY = isFullscreen ? 140 : 32; // more padding top/bottom in fullscreen for toolbars
     
     const safeWidth = Math.max(0, clientWidth - paddingX);
     const safeHeight = Math.max(0, clientHeight - paddingY);
@@ -64,7 +69,6 @@ export default function PDFViewer({ dataUrl, fileName, isFullscreen = false, onC
     
     const newFitScale = Math.min(scaleX, scaleY);
     setFitScale(newFitScale);
-    setScale(newFitScale);
   }, [pageWidth, pageHeight, isFullscreen]);
 
   useEffect(() => {
@@ -89,7 +93,7 @@ export default function PDFViewer({ dataUrl, fileName, isFullscreen = false, onC
           e.touches[0].clientY - e.touches[1].clientY
         );
         initialPinchDist.current = dist;
-        baseScale.current = scale;
+        baseScale.current = effectiveScale;
       }
     };
 
@@ -104,7 +108,8 @@ export default function PDFViewer({ dataUrl, fileName, isFullscreen = false, onC
           const delta = dist / initialPinchDist.current;
           let newScale = baseScale.current * delta;
           newScale = Math.max(MIN_SCALE, Math.min(newScale, MAX_SCALE));
-          setScale(Math.round(newScale * 100) / 100);
+          setManualScale(Math.round(newScale * 100) / 100);
+          setZoomMode('manual');
         }
       }
     };
@@ -126,14 +131,22 @@ export default function PDFViewer({ dataUrl, fileName, isFullscreen = false, onC
       wrapper.removeEventListener("touchend", handleTouchEnd);
       wrapper.removeEventListener("touchcancel", handleTouchEnd);
     };
-  }, [scale]);
+  }, [effectiveScale]);
 
   const handleZoomIn = () => {
-    setScale(s => Math.min(MAX_SCALE, Math.round((s + ZOOM_STEP) * 100) / 100));
+    setManualScale(s => {
+      const current = zoomMode === 'fit-page' ? fitScale : s;
+      return Math.min(MAX_SCALE, Math.round((current + ZOOM_STEP) * 100) / 100);
+    });
+    setZoomMode('manual');
   };
 
   const handleZoomOut = () => {
-    setScale(s => Math.max(MIN_SCALE, Math.round((s - ZOOM_STEP) * 100) / 100));
+    setManualScale(s => {
+      const current = zoomMode === 'fit-page' ? fitScale : s;
+      return Math.max(MIN_SCALE, Math.round((current - ZOOM_STEP) * 100) / 100);
+    });
+    setZoomMode('manual');
   };
 
   const goToPrevPage = () => {
@@ -143,16 +156,23 @@ export default function PDFViewer({ dataUrl, fileName, isFullscreen = false, onC
   const goToNextPage = () => {
     setPageNumber(p => Math.min(numPages, p + 1));
   };
+  
+  const handleClose = () => {
+    if (onClose) onClose();
+  };
 
   const containerClasses = isFullscreen 
-    ? "fixed inset-0 z-50 bg-neutral-950 flex flex-col pt-safe pb-safe"
+    ? "fixed inset-0 z-50 bg-neutral-950 flex flex-col"
     : "relative w-full h-[60vh] sm:h-[70vh] bg-neutral-900 border border-white/10 rounded-xl overflow-hidden flex flex-col";
 
   return (
     <div className={containerClasses}>
       {/* Top Bar for Fullscreen */}
       {isFullscreen && (
-        <div className="flex items-center justify-between px-4 py-3 bg-neutral-900 border-b border-white/10 shrink-0">
+        <div 
+          className="flex items-center justify-between px-4 pb-3 bg-neutral-900 border-b border-white/10 shrink-0"
+          style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)' }}
+        >
           <div className="min-w-0 flex-1 mr-4">
             <h2 className="text-sm font-bold text-white truncate">{fileName}</h2>
             <p className="text-[10px] text-zinc-400 font-mono mt-0.5">
@@ -161,11 +181,12 @@ export default function PDFViewer({ dataUrl, fileName, isFullscreen = false, onC
           </div>
           <button
             type="button"
-            onClick={onClose}
-            className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors shrink-0"
+            onClick={handleClose}
+            className="flex items-center gap-1 px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors shrink-0"
             aria-label="Close PDF viewer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
+            <span className="text-xs font-bold font-mono tracking-wider">CLOSE</span>
           </button>
         </div>
       )}
@@ -195,7 +216,7 @@ export default function PDFViewer({ dataUrl, fileName, isFullscreen = false, onC
           >
             <Page
               pageNumber={pageNumber}
-              scale={scale}
+              scale={effectiveScale}
               onLoadSuccess={onPageLoadSuccess}
               className="shadow-2xl"
               renderTextLayer={true}
@@ -242,19 +263,19 @@ export default function PDFViewer({ dataUrl, fileName, isFullscreen = false, onC
           <button
             type="button"
             onClick={handleZoomOut}
-            disabled={scale <= MIN_SCALE}
+            disabled={effectiveScale <= MIN_SCALE}
             className="p-1.5 text-white disabled:text-zinc-700 disabled:bg-transparent hover:bg-white/10 rounded-md transition-colors"
             aria-label="Zoom out"
           >
             <ZoomOut className="w-4 h-4" />
           </button>
           <span className="text-[10px] font-mono text-zinc-300 px-2 min-w-[3rem] text-center">
-            {Math.round(scale * 100)}%
+            {Math.round(effectiveScale * 100)}%
           </span>
           <button
             type="button"
             onClick={handleZoomIn}
-            disabled={scale >= MAX_SCALE}
+            disabled={effectiveScale >= MAX_SCALE}
             className="p-1.5 text-white disabled:text-zinc-700 disabled:bg-transparent hover:bg-white/10 rounded-md transition-colors"
             aria-label="Zoom in"
           >
@@ -262,15 +283,26 @@ export default function PDFViewer({ dataUrl, fileName, isFullscreen = false, onC
           </button>
         </div>
 
-        <button
-          type="button"
-          onClick={() => doFitPage()}
-          className="p-1.5 text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors flex items-center gap-1"
-          aria-label="Fit to page"
-          title="Fit Page"
-        >
-          <Maximize2 className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setZoomMode('fit-page')}
+            className="text-[10px] font-mono font-bold text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors px-2 py-1"
+            title="Fit Page"
+          >
+            FIT
+          </button>
+          
+          <button
+            type="button"
+            onClick={isFullscreen ? handleClose : onOpenFullscreen}
+            className="p-1.5 text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors flex items-center gap-1"
+            aria-label={isFullscreen ? "Close fullscreen" : "Open fullscreen"}
+            title={isFullscreen ? "Close" : "Expand"}
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+          </button>
+        </div>
       </div>
     </div>
   );
