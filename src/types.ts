@@ -54,6 +54,17 @@ export interface BestSetLog {
 // Log index: exerciseId -> BestSetLog
 export type BestSetLogs = Record<string, BestSetLog>;
 
+export interface WeeklyBestSetLog {
+  weekNumber: number;
+  exerciseId: string;
+  exerciseName: string;
+  weight: number;
+  reps: number;
+  date: string;
+}
+
+export type WeeklyBestSetLogs = Record<string, Record<number, WeeklyBestSetLog>>;
+
 export interface DailyWeightLog {
   date: string; // YYYY-MM-DD
   weight: number;

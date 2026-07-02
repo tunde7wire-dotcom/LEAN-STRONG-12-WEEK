@@ -121,6 +121,7 @@ export async function deletePDF(weekNumber: number): Promise<void> {
 
 // local storage keys
 const KEY_BEST_SETS = "lean_strong_best_sets";
+const KEY_WEEKLY_BEST_SETS = "lean_strong_weekly_best_sets";
 const KEY_WEIGHTS = "lean_strong_weights";
 const KEY_CHECKINS = "lean_strong_checkins";
 const KEY_SETTINGS = "lean_strong_settings";
@@ -154,6 +155,12 @@ export const getBestSetLogs = (): Record<string, BestSetLog> =>
 
 export const saveBestSetLogs = (logs: Record<string, BestSetLog>) =>
   saveToLocalStorage(KEY_BEST_SETS, logs);
+
+export const getWeeklyBestSetLogs = (): import("../types").WeeklyBestSetLogs =>
+  loadFromLocalStorage<import("../types").WeeklyBestSetLogs>(KEY_WEEKLY_BEST_SETS, {});
+
+export const saveWeeklyBestSetLogs = (logs: import("../types").WeeklyBestSetLogs) =>
+  saveToLocalStorage(KEY_WEEKLY_BEST_SETS, logs);
 
 export const getDailyWeightLogs = (): DailyWeightLog[] =>
   loadFromLocalStorage<DailyWeightLog[]>(KEY_WEIGHTS, []);
@@ -197,6 +204,7 @@ export const saveExerciseSwaps = (swaps: Record<string, string>) =>
 export async function clearAllDatabase(): Promise<void> {
   if (typeof window !== "undefined") {
     window.localStorage.removeItem(KEY_BEST_SETS);
+    window.localStorage.removeItem(KEY_WEEKLY_BEST_SETS);
     window.localStorage.removeItem(KEY_WEIGHTS);
     window.localStorage.removeItem(KEY_CHECKINS);
     window.localStorage.removeItem(KEY_SETTINGS);

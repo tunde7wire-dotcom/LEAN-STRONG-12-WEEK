@@ -4,8 +4,8 @@
  */
 
 import React, { useState } from "react";
-import { Scale, Calendar, LineChart, Edit, Check, TrendingDown, Info, Trash2, Save } from "lucide-react";
-import { DailyWeightLog, WeeklyCheckIn, AppSettings, WeekPlan } from "../types";
+import { Scale, Calendar, LineChart, Edit, Check, TrendingDown, Info, Trash2, Save, Dumbbell, Trophy } from "lucide-react";
+import { DailyWeightLog, WeeklyCheckIn, AppSettings, WeekPlan, BestSetLog, WeeklyBestSetLogs } from "../types";
 
 interface ProgressTabProps {
   selectedWeekNum: number;
@@ -13,6 +13,9 @@ interface ProgressTabProps {
   settings: AppSettings;
   weightLogs: DailyWeightLog[];
   checkins: WeeklyCheckIn[];
+  bestSetLogs: Record<string, BestSetLog>;
+  weeklyBestSetLogs: WeeklyBestSetLogs;
+  exerciseSwaps: Record<string, string>;
   onLogWeight: (weight: number, date: string) => void;
   onDeleteWeight: (date: string) => void;
   onSaveCheckIn: (checkIn: WeeklyCheckIn) => void;
@@ -24,6 +27,9 @@ export default function ProgressTab({
   settings,
   weightLogs,
   checkins,
+  bestSetLogs,
+  weeklyBestSetLogs,
+  exerciseSwaps,
   onLogWeight,
   onDeleteWeight,
   onSaveCheckIn,
@@ -61,6 +67,17 @@ export default function ProgressTab({
     setImprovements(updated.improvements || "");
     setIsSaved(false);
   }, [selectedWeekNum, checkins]);
+
+  // Strength Progression State
+  const loggedExercises = Object.keys(weeklyBestSetLogs).sort();
+  const [selectedExercise, setSelectedExercise] = useState<string>(loggedExercises[0] || "");
+
+  // Update selected exercise if the list changes and nothing is selected
+  React.useEffect(() => {
+    if (!selectedExercise && loggedExercises.length > 0) {
+      setSelectedExercise(loggedExercises[0]);
+    }
+  }, [loggedExercises, selectedExercise]);
 
   // Helper to get weight logs belonging to the currently selected week (W1-W12)
   const getLogsForWeek = (wkNum: number): DailyWeightLog[] => {
@@ -233,6 +250,140 @@ export default function ProgressTab({
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Strength Progression Tracker */}
+      <div className="apple-card p-5 mb-6">
+        <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-400 mb-3 flex items-center gap-1.5">
+          <Dumbbell className="w-4 h-4 text-white" />
+          Strength Progression Tracker
+        </h3>
+        {loggedExercises.length > 0 ? (
+          <div className="space-y-4">
+            <select
+              value={selectedExercise}
+              onChange={(e) => setSelectedExercise(e.target.value)}
+              className="w-full text-sm py-2.5 px-3 rounded-xl bg-white/5 border border-white/10 text-white font-mono focus:border-white focus:outline-none"
+            >
+              {loggedExercises.map((ex) => (
+                <option key={ex} value={ex} className="bg-neutral-900">
+                  {ex}
+                </option>
+              ))}
+            </select>
+
+            {/* Simple Trend Chart */}
+            <div className="h-16 flex items-end gap-1 px-1 pt-2 pb-1 border-b border-white/10">
+              {(() => {
+                const logs = weeklyBestSetLogs[selectedExercise] || {};
+                const maxScore = Math.max(1, ...Object.values(logs).map(l => (l.weight || 1) * l.reps));
+                
+                return weeks.map((w) => {
+                  const log = logs[w.weekNumber];
+                  const score = log ? (log.weight || 1) * log.reps : 0;
+                  const heightPct = log ? Math.max(10, (score / maxScore) * 100) : 0;
+                  return (
+                    <div key={`chart-${w.weekNumber}`} className="flex-1 flex flex-col justify-end items-center h-full group relative">
+                      {log && (
+                        <div 
+                          className={`w-full max-w-[12px] rounded-t-sm transition-all ${w.weekNumber === selectedWeekNum ? "bg-white" : "bg-zinc-600 group-hover:bg-zinc-400"}`} 
+                          style={{ height: `${heightPct}%` }}
+                        />
+                      )}
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+
+            <div className="space-y-2">
+              {weeks.map((w, index) => {
+                const log = weeklyBestSetLogs[selectedExercise]?.[w.weekNumber];
+                
+                // Find previous recorded log to calculate change
+                let prevLog = null;
+                for (let i = index - 1; i >= 0; i--) {
+                  const pLog = weeklyBestSetLogs[selectedExercise]?.[weeks[i].weekNumber];
+                  if (pLog) {
+                    prevLog = pLog;
+                    break;
+                  }
+                }
+                
+                let changeStr = null;
+                let changeColor = "";
+                let scoreStr = "";
+                
+                if (log) {
+                  const currentScore = (log.weight || 1) * log.reps;
+                  scoreStr = `Est. Score: ${currentScore}`;
+                  
+                  if (prevLog) {
+                    const prevScore = (prevLog.weight || 1) * prevLog.reps;
+                    if (currentScore > prevScore) {
+                      changeStr = "UP";
+                      changeColor = "text-emerald-500";
+                    } else if (currentScore < prevScore) {
+                      changeStr = "DN";
+                      changeColor = "text-red-500";
+                    } else {
+                      changeStr = "==";
+                      changeColor = "text-zinc-500";
+                    }
+                  }
+                }
+
+                return (
+                  <div key={w.weekNumber} className="flex flex-col text-xs py-2 border-b border-white/10 last:border-0">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className={`font-mono font-bold uppercase ${w.weekNumber === selectedWeekNum ? "text-white" : "text-zinc-500"}`}>
+                          Week {String(w.weekNumber).padStart(2, "0")}
+                        </span>
+                        {changeStr && (
+                          <span className={`text-[9px] font-mono font-bold tracking-wider ${changeColor}`}>
+                            {changeStr}
+                          </span>
+                        )}
+                      </div>
+                      <span className="font-mono font-bold text-white">
+                        {log ? (
+                          <span>
+                            {log.weight} {unitsStr} <span className="text-zinc-500 font-normal">x</span> {log.reps}
+                          </span>
+                        ) : (
+                          <span className="text-zinc-600 font-normal">—</span>
+                        )}
+                      </span>
+                    </div>
+                    {log && (
+                       <div className="text-[9px] text-zinc-500 font-mono text-right mt-1">
+                         {scoreStr}
+                       </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            
+            {bestSetLogs[selectedExercise] && (
+              <div className="mt-4 pt-3 border-t border-white/10 flex justify-between items-center">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-500 flex items-center gap-1">
+                  <Trophy className="w-3.5 h-3.5" />
+                  All-Time Best
+                </span>
+                <span className="text-sm font-mono font-black text-white">
+                  {bestSetLogs[selectedExercise].weight} {unitsStr} <span className="text-zinc-500 font-normal">x</span> {bestSetLogs[selectedExercise].reps}
+                </span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-6 bg-white/5 border border-white/10 rounded-xl">
+            <Info className="w-5 h-5 text-zinc-600 mx-auto mb-1.5" />
+            <span className="text-xs text-zinc-500 font-mono uppercase tracking-wider">No workouts logged yet.</span>
+          </div>
+        )}
       </div>
 
       {/* Weekly Check-In form */}

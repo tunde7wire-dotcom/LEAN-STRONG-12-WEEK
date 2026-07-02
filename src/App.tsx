@@ -28,12 +28,14 @@ import RestTimer from "./components/RestTimer";
 
 // Models & Seed Data
 import { SEEDED_PLANS } from "./utils/planData";
-import { WeekPlan, DayPlan, AppSettings, DailyWeightLog, WeeklyCheckIn, BestSetLog, ActiveWorkoutState } from "./types";
+import { WeekPlan, DayPlan, AppSettings, DailyWeightLog, WeeklyCheckIn, BestSetLog, WeeklyBestSetLogs, ActiveWorkoutState } from "./types";
 
 // DB utilities
 import { 
   getBestSetLogs, 
   saveBestSetLogs, 
+  getWeeklyBestSetLogs,
+  saveWeeklyBestSetLogs,
   getDailyWeightLogs, 
   saveDailyWeightLogs, 
   getWeeklyCheckIns, 
@@ -64,6 +66,7 @@ export default function App() {
   const [weightLogs, setWeightLogs] = useState<DailyWeightLog[]>(getDailyWeightLogs);
   const [checkins, setCheckins] = useState<WeeklyCheckIn[]>(getWeeklyCheckIns);
   const [bestSetLogs, setBestSetLogs] = useState<Record<string, BestSetLog>>(getBestSetLogs);
+  const [weeklyBestSetLogs, setWeeklyBestSetLogs] = useState<WeeklyBestSetLogs>(getWeeklyBestSetLogs);
   const [exerciseSwaps, setExerciseSwaps] = useState<Record<string, string>>(getExerciseSwaps);
   const [activeWorkout, setActiveWorkoutState] = useState<ActiveWorkoutState | null>(getActiveWorkout);
 
@@ -153,6 +156,7 @@ export default function App() {
   const handleCompleteActiveWorkout = (loggedSets: Record<string, { weight: number; reps: number }>) => {
     const todayStr = new Date().toISOString().split("T")[0];
     const newBestSetLogs = { ...bestSetLogs };
+    const newWeeklyBestSetLogs = { ...weeklyBestSetLogs };
 
     // Commit logged sets to our Best Set History
     Object.entries(loggedSets).forEach(([exId, log]) => {
@@ -161,10 +165,26 @@ export default function App() {
       if (originalEx) {
         const resolvedName = exerciseSwaps[exId] || originalEx.name;
         
-        // Only update history if it beats previous or if no previous exists
+        // Update all-time best
         const prev = bestSetLogs[resolvedName];
         if (!prev || log.weight > prev.weight || (log.weight === prev.weight && log.reps > prev.reps)) {
           newBestSetLogs[resolvedName] = {
+            weight: log.weight,
+            reps: log.reps,
+            date: todayStr
+          };
+        }
+
+        // Update weekly best
+        if (!newWeeklyBestSetLogs[resolvedName]) {
+          newWeeklyBestSetLogs[resolvedName] = {};
+        }
+        const prevWeekly = newWeeklyBestSetLogs[resolvedName][selectedWeekNum];
+        if (!prevWeekly || log.weight > prevWeekly.weight || (log.weight === prevWeekly.weight && log.reps > prevWeekly.reps)) {
+          newWeeklyBestSetLogs[resolvedName][selectedWeekNum] = {
+            weekNumber: selectedWeekNum,
+            exerciseId: exId,
+            exerciseName: resolvedName,
             weight: log.weight,
             reps: log.reps,
             date: todayStr
@@ -176,6 +196,9 @@ export default function App() {
     // Save logs
     setBestSetLogs(newBestSetLogs);
     saveBestSetLogs(newBestSetLogs);
+
+    setWeeklyBestSetLogs(newWeeklyBestSetLogs);
+    saveWeeklyBestSetLogs(newWeeklyBestSetLogs);
 
     // Save completed day status
     const updatedCompletedDays = {
@@ -378,6 +401,9 @@ export default function App() {
             settings={settings}
             weightLogs={weightLogs}
             checkins={checkins}
+            bestSetLogs={bestSetLogs}
+            weeklyBestSetLogs={weeklyBestSetLogs}
+            exerciseSwaps={exerciseSwaps}
             onLogWeight={handleLogWeight}
             onDeleteWeight={handleDeleteWeight}
             onSaveCheckIn={handleSaveCheckIn}

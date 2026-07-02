@@ -356,22 +356,16 @@ export default function WorkoutTab({
                   />
                 </div>
 
-                {/* Set completion indicator */}
+                {/* Rest Timer Trigger */}
                 <div className="self-end pb-1 pr-1">
-                  {weightVal && repsVal ? (
-                    <button
-                      id={`btn-trigger-timer-on-completion-${ex.id}`}
-                      onClick={handleStartTimer}
-                      className="p-2.5 bg-white text-black hover:bg-neutral-200 rounded-xl transition-colors"
-                      title="Trigger rest timer"
-                    >
-                      <Timer className="w-4 h-4" />
-                    </button>
-                  ) : (
-                    <div className="p-2.5 bg-white/5 border border-white/10 text-zinc-600 rounded-xl">
-                      <Timer className="w-4 h-4 opacity-30" />
-                    </div>
-                  )}
+                  <button
+                    id={`btn-trigger-timer-${ex.id}`}
+                    onClick={handleStartTimer}
+                    className="p-2.5 bg-white text-black hover:bg-neutral-200 rounded-xl transition-colors"
+                    title="Trigger rest timer"
+                  >
+                    <Timer className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
 

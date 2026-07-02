@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Upload, FileText, Trash2, Eye, ShieldCheck, CheckCircle, Info, Sparkles, ChefHat } from "lucide-react";
 import { StoredPDF, WeekPlan } from "../types";
 import { getPDF, savePDF, deletePDF, loadFromLocalStorage, saveToLocalStorage } from "../utils/db";
+import PDFViewer from "./PDFViewer";
 
 interface MealsTabProps {
   selectedWeekNum: number;
@@ -22,6 +23,7 @@ export default function MealsTab({ selectedWeekNum, weekPlan }: MealsTabProps) {
   const [storedPdf, setStoredPdf] = useState<StoredPDF | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isFullscreenPdf, setIsFullscreenPdf] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Prep notes state (saved per week)
@@ -107,7 +109,7 @@ export default function MealsTab({ selectedWeekNum, weekPlan }: MealsTabProps) {
           Week {String(selectedWeekNum).padStart(2, "0")} Meals
         </h1>
         <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
-          Store weekly custom macro blueprints, recipes, or shopping shopping grocery lists natively in your browser. This information remains 100% private and accessible offline during workouts.
+          Store weekly custom macro blueprints, recipes, or grocery lists natively in your browser. This information remains 100% private and accessible offline during workouts.
         </p>
       </div>
 
@@ -140,29 +142,29 @@ export default function MealsTab({ selectedWeekNum, weekPlan }: MealsTabProps) {
               </button>
             </div>
 
-            {/* Embed PDF inside Iframe */}
-            <div className="relative border border-white/10 rounded-xl overflow-hidden mb-4 bg-black">
-              <iframe
-                id="pdf-iframe-preview"
-                src={storedPdf.dataUrl}
-                className="w-full h-80 rounded-xl border-none"
-                title="Weekly PDF Viewer"
-              />
-              <div className="absolute bottom-2 right-2 bg-black/95 border border-white/10 p-1 rounded">
-                <span className="text-[8px] font-mono text-zinc-400 font-bold uppercase tracking-wide">Offline Engine</span>
-              </div>
+            {/* Inline PDF Viewer */}
+            <div className="mb-4">
+              <PDFViewer dataUrl={storedPdf.dataUrl} fileName={storedPdf.fileName} />
             </div>
 
-            {/* Open / Download PDF Link */}
-            <a
-              id="meals-btn-download-pdf"
-              href={storedPdf.dataUrl}
-              download={storedPdf.fileName}
+            {/* Open PDF Link */}
+            <button
+              id="meals-btn-open-pdf"
+              onClick={() => setIsFullscreenPdf(true)}
               className="w-full flex items-center justify-center gap-2 border border-white/10 text-white font-bold text-xs py-3 rounded-xl hover:bg-white/5 hover:border-white/20 transition-all uppercase tracking-wider font-mono"
             >
               <Eye className="w-3.5 h-3.5" />
-              Open or Download PDF Plan
-            </a>
+              Open PDF Plan
+            </button>
+            
+            {isFullscreenPdf && (
+              <PDFViewer 
+                dataUrl={storedPdf.dataUrl} 
+                fileName={storedPdf.fileName} 
+                isFullscreen={true} 
+                onClose={() => setIsFullscreenPdf(false)} 
+              />
+            )}
           </div>
         ) : (
           <div className="border border-dashed border-white/10 hover:border-white/25 rounded-xl p-8 text-center bg-white/5 transition-colors">
