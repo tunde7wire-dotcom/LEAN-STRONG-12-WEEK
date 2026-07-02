@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { getLocalTodayString } from "./utils/dateUtils";
 import React, { useState, useEffect } from "react";
 import { 
   Dumbbell, 
@@ -75,31 +76,50 @@ export default function App() {
   const [timerDuration, setTimerDuration] = useState<number>(() => settings.timerDuration);
   const [timerOpen, setTimerOpen] = useState(false);
 
+  const [planStatus, setPlanStatus] = useState<'pre-start' | 'active' | 'completed'>('active');
+  const [elapsedDays, setElapsedDays] = useState(0);
+
   // Calculate and sync current plan position based on Start Date
   useEffect(() => {
-    const start = new Date(settings.startDate);
-    const today = new Date();
-    
-    // Reset to midnight for exact math
+    const [year, month, day] = settings.startDate.split('-').map(Number);
+    const start = new Date(year, month - 1, day);
     start.setHours(0, 0, 0, 0);
+
+    const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const diffTime = today.getTime() - start.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const utcStart = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+    const utcToday = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+    const diffDays = Math.floor((utcToday - utcStart) / msPerDay);
     
-    // Clip between Week 1 and 12
-    const currentWeek = Math.min(12, Math.max(1, Math.floor(diffDays / 7) + 1));
-    
-    // Day index: Monday (0) to Sunday (6)
-    const rawDay = today.getDay(); // 0 is Sunday, 1 is Monday ...
-    const adjustedDay = rawDay === 0 ? 6 : rawDay - 1;
+    setElapsedDays(diffDays);
 
+    let currentWeek: number;
+    let currentDayIndex: number;
+    let status: 'pre-start' | 'active' | 'completed';
+
+    if (diffDays < 0) {
+      status = 'pre-start';
+      currentWeek = 1;
+      currentDayIndex = 0;
+    } else if (diffDays >= 84) {
+      status = 'completed';
+      currentWeek = 12;
+      currentDayIndex = 6;
+    } else {
+      status = 'active';
+      currentWeek = Math.floor(diffDays / 7) + 1;
+      currentDayIndex = diffDays % 7;
+    }
+
+    setPlanStatus(status);
     setLiveWeekNum(currentWeek);
-    setLiveDayIndex(adjustedDay);
+    setLiveDayIndex(currentDayIndex);
 
     // Default user views to this live position on first load
     setSelectedWeekNum(currentWeek);
-    setSelectedDayIndex(adjustedDay);
+    setSelectedDayIndex(currentDayIndex);
   }, [settings.startDate]);
 
   // Handle setting updates
@@ -154,7 +174,7 @@ export default function App() {
 
   // Complete Active Workout
   const handleCompleteActiveWorkout = (loggedSets: Record<string, { weight: number; reps: number }>) => {
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = getLocalTodayString();
     const newBestSetLogs = { ...bestSetLogs };
     const newWeeklyBestSetLogs = { ...weeklyBestSetLogs };
 
@@ -263,7 +283,7 @@ export default function App() {
   const dayPlan: DayPlan = weekPlan.days[selectedDayIndex] || weekPlan.days[0];
 
   // Helper to check if weight was logged today (fasted morning weight)
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = getLocalTodayString();
   const todayWeightLog = weightLogs.find((w) => w.date === todayStr);
   const weightLoggedToday = !!todayWeightLog;
   const weightValueToday = todayWeightLog?.weight || null;
@@ -327,6 +347,8 @@ export default function App() {
             weekPlan={SEEDED_PLANS[liveWeekNum - 1] || SEEDED_PLANS[0]}
             dayPlan={(SEEDED_PLANS[liveWeekNum - 1] || SEEDED_PLANS[0]).days[liveDayIndex] || SEEDED_PLANS[0].days[0]}
             settings={settings}
+            planStatus={planStatus}
+            elapsedDays={elapsedDays}
             onStartWorkout={() => {
               setSelectedWeekNum(liveWeekNum);
               setSelectedDayIndex(liveDayIndex);
@@ -356,7 +378,7 @@ export default function App() {
             />
           ) : (
             <OverviewTab
-              currentWeekNum={liveWeekNum}
+              currentWeekNum={planStatus === "active" ? liveWeekNum : 0}
               weeks={SEEDED_PLANS}
               settings={settings}
               checkins={checkins}
@@ -367,7 +389,7 @@ export default function App() {
 
         {activeTab === "workout" && (
           <WorkoutTab
-            currentWeekNum={liveWeekNum}
+            currentWeekNum={planStatus === "active" ? liveWeekNum : 0}
             selectedWeekNum={selectedWeekNum}
             dayIndex={selectedDayIndex}
             weekPlan={weekPlan}

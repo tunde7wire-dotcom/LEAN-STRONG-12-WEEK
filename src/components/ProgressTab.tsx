@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.5
  */
 
+import { getLocalTodayString } from "../utils/dateUtils";
 import React, { useState } from "react";
 import { Scale, Calendar, LineChart, Edit, Check, TrendingDown, Info, Trash2, Save, Dumbbell, Trophy } from "lucide-react";
 import { DailyWeightLog, WeeklyCheckIn, AppSettings, WeekPlan, BestSetLog, WeeklyBestSetLogs } from "../types";
@@ -35,7 +36,7 @@ export default function ProgressTab({
   onSaveCheckIn,
 }: ProgressTabProps) {
   const [newWeight, setNewWeight] = useState("");
-  const [weightDate, setWeightDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [weightDate, setWeightDate] = useState(() => getLocalTodayString());
 
   // Checkin inputs
   const activeCheckin = checkins.find((c) => c.weekNumber === selectedWeekNum) || {
@@ -44,7 +45,7 @@ export default function ProgressTab({
     highlights: "",
     improvements: "",
     completed: false,
-    date: new Date().toISOString().split("T")[0]
+    date: getLocalTodayString()
   };
 
   const [waist, setWaist] = useState<string>(activeCheckin.waist?.toString() || "");
@@ -60,7 +61,7 @@ export default function ProgressTab({
       highlights: "",
       improvements: "",
       completed: false,
-      date: new Date().toISOString().split("T")[0]
+      date: getLocalTodayString()
     };
     setWaist(updated.waist?.toString() || "");
     setHighlights(updated.highlights || "");
@@ -130,7 +131,7 @@ export default function ProgressTab({
       highlights: highlights.trim(),
       improvements: improvements.trim(),
       completed: true,
-      date: new Date().toISOString().split("T")[0]
+      date: getLocalTodayString()
     });
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2000);
@@ -276,17 +277,20 @@ export default function ProgressTab({
             <div className="h-16 flex items-end gap-1 px-1 pt-2 pb-1 border-b border-white/10">
               {(() => {
                 const logs = weeklyBestSetLogs[selectedExercise] || {};
-                const maxScore = Math.max(1, ...Object.values(logs).map(l => (l.weight || 1) * l.reps));
+                const isBodyweight = Object.values(logs).every(l => !l.weight || l.weight === 0);
+                const maxMetric = Math.max(1, ...Object.values(logs).map(l => isBodyweight ? l.reps : (l.weight || 0)));
                 
                 return weeks.map((w) => {
                   const log = logs[w.weekNumber];
-                  const score = log ? (log.weight || 1) * log.reps : 0;
-                  const heightPct = log ? Math.max(10, (score / maxScore) * 100) : 0;
+                  const metric = log ? (isBodyweight ? log.reps : (log.weight || 0)) : 0;
+                  const heightPct = log ? Math.max(10, (metric / maxMetric) * 100) : 0;
+                  const isAllTimeBest = bestSetLogs[selectedExercise] && log && log.weight === bestSetLogs[selectedExercise].weight && log.reps === bestSetLogs[selectedExercise].reps;
+
                   return (
-                    <div key={`chart-${w.weekNumber}`} className="flex-1 flex flex-col justify-end items-center h-full group relative">
+                    <div key={`chart-${w.weekNumber}`} className="flex-1 flex flex-col justify-end items-center h-full group relative" title={log ? (isBodyweight ? `${log.reps} reps` : `${log.weight} ${unitsStr} × ${log.reps}`) : "No entry"}>
                       {log && (
                         <div 
-                          className={`w-full max-w-[12px] rounded-t-sm transition-all ${w.weekNumber === selectedWeekNum ? "bg-white" : "bg-zinc-600 group-hover:bg-zinc-400"}`} 
+                          className={`w-full max-w-[12px] rounded-t-sm transition-all ${isAllTimeBest ? "bg-emerald-500" : (w.weekNumber === selectedWeekNum ? "bg-white" : "bg-zinc-600 group-hover:bg-zinc-400")}`} 
                           style={{ height: `${heightPct}%` }}
                         />
                       )}
@@ -312,22 +316,25 @@ export default function ProgressTab({
                 
                 let changeStr = null;
                 let changeColor = "";
-                let scoreStr = "";
                 
                 if (log) {
-                  const currentScore = (log.weight || 1) * log.reps;
-                  scoreStr = `Est. Score: ${currentScore}`;
-                  
                   if (prevLog) {
-                    const prevScore = (prevLog.weight || 1) * prevLog.reps;
-                    if (currentScore > prevScore) {
-                      changeStr = "UP";
+                    let improved = false;
+                    let declined = false;
+                    
+                    if (log.weight > prevLog.weight) improved = true;
+                    else if (log.weight < prevLog.weight) declined = true;
+                    else if (log.reps > prevLog.reps) improved = true;
+                    else if (log.reps < prevLog.reps) declined = true;
+
+                    if (improved) {
+                      changeStr = "Improved";
                       changeColor = "text-emerald-500";
-                    } else if (currentScore < prevScore) {
-                      changeStr = "DN";
-                      changeColor = "text-red-500";
+                    } else if (declined) {
+                      changeStr = "Below previous recorded week";
+                      changeColor = "text-zinc-500";
                     } else {
-                      changeStr = "==";
+                      changeStr = "Maintained";
                       changeColor = "text-zinc-500";
                     }
                   }
@@ -336,47 +343,61 @@ export default function ProgressTab({
                 return (
                   <div key={w.weekNumber} className="flex flex-col text-xs py-2 border-b border-white/10 last:border-0">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col gap-1">
                         <span className={`font-mono font-bold uppercase ${w.weekNumber === selectedWeekNum ? "text-white" : "text-zinc-500"}`}>
                           Week {String(w.weekNumber).padStart(2, "0")}
                         </span>
                         {changeStr && (
-                          <span className={`text-[9px] font-mono font-bold tracking-wider ${changeColor}`}>
+                          <span className={`text-[10px] font-mono tracking-wider ${changeColor}`}>
                             {changeStr}
                           </span>
                         )}
                       </div>
-                      <span className="font-mono font-bold text-white">
-                        {log ? (
-                          <span>
-                            {log.weight} {unitsStr} <span className="text-zinc-500 font-normal">x</span> {log.reps}
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="font-mono font-bold text-white">
+                          {log ? (
+                            <span>
+                              {log.weight > 0 ? `${log.weight} ${unitsStr} ` : ''}<span className={log.weight > 0 ? "text-zinc-500 font-normal" : "hidden"}>x</span> {log.reps} {log.weight === 0 ? 'reps' : ''}
+                            </span>
+                          ) : (
+                            <span className="text-zinc-600 font-normal">No entry</span>
+                          )}
+                        </span>
+                        {log && log.date && (
+                          <span className="text-[9px] text-zinc-500 font-mono">
+                            {log.date}
                           </span>
-                        ) : (
-                          <span className="text-zinc-600 font-normal">—</span>
                         )}
-                      </span>
+                      </div>
                     </div>
-                    {log && (
-                       <div className="text-[9px] text-zinc-500 font-mono text-right mt-1">
-                         {scoreStr}
-                       </div>
-                    )}
                   </div>
                 );
               })}
             </div>
             
-            {bestSetLogs[selectedExercise] && (
-              <div className="mt-4 pt-3 border-t border-white/10 flex justify-between items-center">
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-500 flex items-center gap-1">
-                  <Trophy className="w-3.5 h-3.5" />
-                  All-Time Best
-                </span>
-                <span className="text-sm font-mono font-black text-white">
-                  {bestSetLogs[selectedExercise].weight} {unitsStr} <span className="text-zinc-500 font-normal">x</span> {bestSetLogs[selectedExercise].reps}
-                </span>
-              </div>
-            )}
+            {bestSetLogs[selectedExercise] && (() => {
+              const allTime = bestSetLogs[selectedExercise];
+              let allTimeWeek = null;
+              for (const w of weeks) {
+                const wl = weeklyBestSetLogs[selectedExercise]?.[w.weekNumber];
+                if (wl && wl.weight === allTime.weight && wl.reps === allTime.reps) {
+                  allTimeWeek = w.weekNumber;
+                }
+              }
+              
+              return (
+                <div className="mt-4 pt-3 border-t border-white/10 flex justify-between items-center">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-500 flex items-center gap-1">
+                    <Trophy className="w-3.5 h-3.5" />
+                    All-Time Best {allTimeWeek ? `(Week ${allTimeWeek})` : ''}
+                  </span>
+                  <span className="text-sm font-mono font-black text-white">
+                    {allTime.weight > 0 ? `${allTime.weight} ${unitsStr} ` : ''}
+                    <span className={allTime.weight > 0 ? "text-zinc-500 font-normal" : "hidden"}>x</span> {allTime.reps} {allTime.weight === 0 ? 'reps' : ''}
+                  </span>
+                </div>
+              );
+            })()}
           </div>
         ) : (
           <div className="text-center py-6 bg-white/5 border border-white/10 rounded-xl">

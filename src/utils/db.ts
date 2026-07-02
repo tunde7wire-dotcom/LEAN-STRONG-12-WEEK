@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { getLocalTodayString } from "./dateUtils";
 import { StoredPDF, BestSetLog, DailyWeightLog, WeeklyCheckIn, AppSettings, ActiveWorkoutState } from "../types";
 
 const DB_NAME = "LeanAndStrongTrackerDB";
@@ -176,7 +177,7 @@ export const saveWeeklyCheckIns = (checkins: WeeklyCheckIn[]) =>
 
 export const getAppSettings = (): AppSettings => {
   const defaultSettings: AppSettings = {
-    startDate: new Date().toISOString().split("T")[0],
+    startDate: getLocalTodayString(),
     units: "imperial",
     timerDuration: 90, // default 90 seconds (1.5 mins)
     soundEnabled: true,

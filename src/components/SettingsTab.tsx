@@ -6,6 +6,7 @@
 import React, { useState } from "react";
 import { Settings, ShieldAlert, RotateCcw, Calendar, Check, Volume2, Info, Moon } from "lucide-react";
 import { AppSettings } from "../types";
+import BackupRestore from "./BackupRestore";
 
 interface SettingsTabProps {
   settings: AppSettings;
@@ -165,6 +166,8 @@ export default function SettingsTab({
           {isSaved ? "Saved Preferences!" : "Commit Overrides"}
         </button>
       </form>
+
+      <BackupRestore />
 
       {/* Disclaimers & Legal information */}
       <div className="bg-white/5 border border-white/10 rounded-2xl p-5 mb-6 text-[10px] text-zinc-400 leading-relaxed">

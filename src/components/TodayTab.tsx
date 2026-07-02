@@ -14,6 +14,8 @@ interface TodayTabProps {
   weekPlan: WeekPlan;
   dayPlan: DayPlan;
   settings: AppSettings;
+  planStatus?: 'pre-start' | 'active' | 'completed';
+  elapsedDays?: number;
   onStartWorkout: () => void;
   onNavigateToTab: (tabId: string) => void;
   onNavigateToWeek: (weekNum: number) => void;
@@ -27,6 +29,8 @@ export default function TodayTab({
   weekPlan,
   dayPlan,
   settings,
+  planStatus = 'active',
+  elapsedDays = 0,
   onStartWorkout,
   onNavigateToTab,
   onNavigateToWeek,
@@ -82,6 +86,51 @@ export default function TodayTab({
   const workoutCompleted = settings.completedDays[`W${currentWeekNum}-D${currentDayIndex}`] ? 1 : 0;
   const weighInCompleted = weightLoggedToday ? 1 : 0;
   const totalCompleted = workoutCompleted + weighInCompleted;
+
+  if (planStatus === 'pre-start') {
+    const daysUntilStart = Math.abs(elapsedDays);
+    return (
+      <div id="today-dashboard" className="max-w-md mx-auto px-4 pb-24 pt-4 text-center">
+        <div className="mt-20 mb-8">
+          <Calendar className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
+          <h1 className="text-3xl font-bold text-white uppercase tracking-tight mb-2">
+            Preparation
+          </h1>
+          <p className="text-zinc-400 font-mono">
+            Your plan starts in {daysUntilStart} day{daysUntilStart !== 1 ? 's' : ''}.
+          </p>
+        </div>
+        <button
+          onClick={() => onNavigateToWeek(1)}
+          className="bg-white/10 text-white font-bold uppercase tracking-wider py-3 px-6 rounded hover:bg-white/20 transition-colors"
+        >
+          View Roadmap
+        </button>
+      </div>
+    );
+  }
+
+  if (planStatus === 'completed') {
+    return (
+      <div id="today-dashboard" className="max-w-md mx-auto px-4 pb-24 pt-4 text-center">
+        <div className="mt-20 mb-8">
+          <Award className="w-12 h-12 text-white mx-auto mb-4" />
+          <h1 className="text-3xl font-bold text-white uppercase tracking-tight mb-2">
+            12-Week Plan Complete
+          </h1>
+          <p className="text-zinc-400 font-mono">
+            Congratulations on finishing the program.
+          </p>
+        </div>
+        <button
+          onClick={() => onNavigateToWeek(12)}
+          className="bg-white/10 text-white font-bold uppercase tracking-wider py-3 px-6 rounded hover:bg-white/20 transition-colors"
+        >
+          Browse Roadmap
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div id="today-dashboard" className="max-w-md mx-auto px-4 pb-24 pt-4">
