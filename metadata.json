@@ -1,0 +1,6 @@
+{
+  "name": "12-Week Lean & Strong Tracker",
+  "description": "A mobile-first offline tracker for the 12-Week Lean + Strong training and nutrition plan, complete with rest timers, workout best-set progression, weight logging, and weekly PDF upload storage.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
