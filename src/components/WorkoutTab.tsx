@@ -16,36 +16,125 @@ interface WorkoutTabProps {
   settings: AppSettings;
   activeWorkout: ActiveWorkoutState | null;
   previousBestSets: Record<string, BestSetLog>; // exerciseName -> BestSetLog
-  swaps: Record<string, string>; // originalExerciseId -> customExerciseName
+  swaps: Record<string, import("../types").CustomExerciseSwap | string>;
   onSaveActiveWorkout: (state: ActiveWorkoutState | null) => void;
-  onCompleteWorkout: (logs: Record<string, { weight: number; reps: number }>) => void;
+  onCompleteWorkout: (logs: Record<string, { weight?: number; reps?: number; duration?: number; steps?: number; assistance?: number; completed?: boolean }>) => void;
   onTriggerRestTimer: () => void;
   onBackToWeekly: () => void;
-  onSaveExerciseSwap: (originalId: string, customName: string) => void;
+  onSaveExerciseSwap: (originalId: string, customSwap: import("../types").CustomExerciseSwap | string) => void;
   onResetExerciseSwap: (originalId: string) => void;
 }
 
 // Preset Swaps for high-quality workouts
-const PRESET_SWAPS: Record<string, string[]> = {
-  "Smith/Goblet Squat": ["Smith Squat (Heavy)", "Goblet Squat", "Barbell Back Squat", "Hack Squat", "Leg Press"],
-  "Smith or Goblet Squat": ["Smith Squat", "Goblet Squat", "Barbell Back Squat", "Hack Squat"],
-  "DB Bench Press": ["DB Bench Press", "Barbell Bench Press", "Weighted Push-ups", "Chest Press Machine"],
-  "Cable Row": ["Cable Row", "Chest-Supported DB Row", "Barbell Row", "T-Bar Row"],
-  "DB RDL": ["DB RDL", "Barbell RDL", "Cable Pull-Through", "Single-Leg DB RDL"],
-  "DB Lateral Raise": ["DB Lateral Raise", "Cable Lateral Raise", "Machine Lateral Raise"],
-  "Plank": ["Plank", "RKC Plank", "Hanging Knee Raise", "Ab Wheel Rollout"],
-  "Smith/Heavy DB RDL": ["Smith RDL (Heavy)", "Heavy DB RDL", "Barbell Deadlift", "Barbell RDL"],
-  "DB Shoulder Press": ["DB Shoulder Press", "Seated Barbell Press", "Single-Arm Kettlebell Press", "Dumbbell Push Press"],
-  "Lat Pulldown": ["Lat Pulldown", "Pull-ups", "Chin-ups", "Assisted Pull-ups"],
-  "DB Split Squat": ["DB Split Squat", "Reverse Lunge", "High Box Step-up", "Walking Lunges"],
-  "Face Pull": ["Face Pull", "Band Pull-Apart", "Reverse Pec Dec", "Rear Delt DB Fly"],
-  "Cable Crunch": ["Cable Crunch", "Ab Wheel Rollout", "Decline Sit-up", "Hanging Leg Raise"],
-  "Bulgarian Split Squat": ["Bulgarian Split Squat", "Deficit Reverse Lunge", "Step-up (Weighted)", "Leg Press"],
-  "Incline DB Bench Press": ["Incline DB Bench Press", "Incline Barbell Bench", "Incline Machine Chest Press"],
-  "1-Arm Cable Row": ["1-Arm Cable Row", "1-Arm Dumbbell Row", "Meadows Row", "Dumbbell Row"],
-  "Hip Thrust": ["Hip Thrust", "Glute Bridge", "Single-Leg Hip Thrust", "Barbell Hip Thrust"],
-  "Cable Bicep Curl": ["Cable Bicep Curl", "Incline DB Curl", "EZ Bar Curl", "Hammer Curl"],
-  "Rope Tricep Pressdown": ["Rope Tricep Pressdown", "Overhead Cable Extension", "Skull Crusher", "Weighted Dips"]
+const PRESET_SWAPS: Record<string, {name: string, trackingType: import("../types").TrackingType, progressMode: import("../types").ProgressMode}[]> = {
+  "Smith/Goblet Squat": [
+    {name: "Smith Squat (Heavy)", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Goblet Squat", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Barbell Back Squat", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Hack Squat", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Leg Press", trackingType: "load_reps", progressMode: "weekly_best"}
+  ],
+  "Smith or Goblet Squat": [
+    {name: "Smith Squat", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Goblet Squat", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Barbell Back Squat", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Hack Squat", trackingType: "load_reps", progressMode: "weekly_best"}
+  ],
+  "DB Bench Press": [
+    {name: "DB Bench Press", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Barbell Bench Press", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Weighted Push-ups", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Chest Press Machine", trackingType: "load_reps", progressMode: "weekly_best"}
+  ],
+  "Cable Row": [
+    {name: "Cable Row", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Chest-Supported DB Row", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Barbell Row", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "T-Bar Row", trackingType: "load_reps", progressMode: "weekly_best"}
+  ],
+  "DB RDL": [
+    {name: "DB RDL", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Barbell RDL", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Cable Pull-Through", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Single-Leg DB RDL", trackingType: "load_reps", progressMode: "weekly_best"}
+  ],
+  "DB Lateral Raise": [
+    {name: "DB Lateral Raise", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Cable Lateral Raise", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Machine Lateral Raise", trackingType: "load_reps", progressMode: "weekly_best"}
+  ],
+  "Plank": [
+    {name: "Plank", trackingType: "duration", progressMode: "weekly_best"}, 
+    {name: "RKC Plank", trackingType: "duration", progressMode: "weekly_best"}, 
+    {name: "Hanging Knee Raise", trackingType: "reps_only", progressMode: "weekly_best"}, 
+    {name: "Ab Wheel Rollout", trackingType: "reps_only", progressMode: "weekly_best"}
+  ],
+  "Smith/Heavy DB RDL": [
+    {name: "Smith RDL (Heavy)", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Heavy DB RDL", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Barbell Deadlift", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Barbell RDL", trackingType: "load_reps", progressMode: "weekly_best"}
+  ],
+  "DB Shoulder Press": [
+    {name: "DB Shoulder Press", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Seated Barbell Press", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Single-Arm Kettlebell Press", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Dumbbell Push Press", trackingType: "load_reps", progressMode: "weekly_best"}
+  ],
+  "Lat Pulldown": [
+    {name: "Lat Pulldown", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Pull-ups", trackingType: "reps_only", progressMode: "weekly_best"}, 
+    {name: "Chin-ups", trackingType: "reps_only", progressMode: "weekly_best"}, 
+    {name: "Assisted Pull-ups", trackingType: "assistance_reps", progressMode: "weekly_best"}
+  ],
+  "DB Split Squat": [
+    {name: "DB Split Squat", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Reverse Lunge", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "High Box Step-up", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Walking Lunges", trackingType: "load_reps", progressMode: "weekly_best"}
+  ],
+  "Face Pull": [
+    {name: "Face Pull", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Reverse Pec Dec", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Rear Delt DB Fly", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Band Pull-Apart", trackingType: "reps_only", progressMode: "weekly_best"}
+  ],
+  "Cable Crunch": [
+    {name: "Cable Crunch", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Ab Wheel Rollout", trackingType: "reps_only", progressMode: "weekly_best"}, 
+    {name: "Decline Sit-up", trackingType: "reps_only", progressMode: "weekly_best"}, 
+    {name: "Hanging Leg Raise", trackingType: "reps_only", progressMode: "weekly_best"}
+  ],
+  "Bulgarian Split Squat": [
+    {name: "Bulgarian Split Squat", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Reverse Lunge", trackingType: "load_reps", progressMode: "weekly_best"}
+  ],
+  "Incline DB Bench Press": [
+    {name: "Incline DB Bench Press", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Incline Barbell Press", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Incline Chest Press Machine", trackingType: "load_reps", progressMode: "weekly_best"}
+  ],
+  "1-Arm Cable Row": [
+    {name: "1-Arm Cable Row", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "1-Arm DB Row", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Machine Row", trackingType: "load_reps", progressMode: "weekly_best"}
+  ],
+  "Hip Thrust": [
+    {name: "Hip Thrust", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Barbell Hip Thrust", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Glute Bridge", trackingType: "reps_only", progressMode: "weekly_best"}, 
+    {name: "Single-Leg Hip Thrust", trackingType: "reps_only", progressMode: "weekly_best"}
+  ],
+  "Cable Bicep Curl": [
+    {name: "Cable Bicep Curl", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "DB Bicep Curl", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "EZ Bar Curl", trackingType: "load_reps", progressMode: "weekly_best"}
+  ],
+  "Rope Tricep Pressdown": [
+    {name: "Rope Tricep Pressdown", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Overhead Tricep Extension", trackingType: "load_reps", progressMode: "weekly_best"}, 
+    {name: "Skullcrushers", trackingType: "load_reps", progressMode: "weekly_best"}
+  ]
 };
 
 export default function WorkoutTab({
@@ -66,10 +155,10 @@ export default function WorkoutTab({
   onResetExerciseSwap,
 }: WorkoutTabProps) {
 
-  const [localLogs, setLocalLogs] = useState<Record<string, { weight: string; reps: string }>>(() => {
+  const [localLogs, setLocalLogs] = useState<Record<string, { weight?: string; reps?: string; duration?: string; steps?: string; assistance?: string; completed?: boolean }>>(() => {
     // If there is an activeWorkout, restore it
     if (activeWorkout && activeWorkout.weekNumber === selectedWeekNum && activeWorkout.dayIndex === dayIndex) {
-      const restored: Record<string, { weight: string; reps: string }> = {};
+      const restored: Record<string, { weight?: string; reps?: string; duration?: string; steps?: string; assistance?: string; completed?: boolean }> = {};
       Object.entries(activeWorkout.logs).forEach(([exId, log]) => {
         restored[exId] = { weight: log.weight.toString(), reps: log.reps.toString() };
       });
@@ -80,10 +169,11 @@ export default function WorkoutTab({
 
   const [swappingExId, setSwappingExId] = useState<string | null>(null);
   const [customSwapName, setCustomSwapName] = useState("");
+  const [customSwapTracking, setCustomSwapTracking] = useState<import("../types").TrackingType>("load_reps");
   const [showBikeCompleted, setShowBikeCompleted] = useState(false);
 
   // Sync state to parent active workout
-  const handleInputChange = (exerciseId: string, field: "weight" | "reps", value: string) => {
+  const handleInputChange = (exerciseId: string, field: "weight" | "reps" | "duration" | "steps" | "assistance", value: string) => {
     const updated = {
       ...localLogs,
       [exerciseId]: {
@@ -96,7 +186,7 @@ export default function WorkoutTab({
     // Build the format for active workout storage
     const logsForParent: Record<string, { weight: number; reps: number }> = {};
     Object.entries(updated).forEach(([exId, logEntry]) => {
-      const log = logEntry as { weight: string; reps: string };
+      const log = logEntry as { weight?: string; reps?: string; duration?: string; steps?: string; assistance?: string };
       const wt = parseFloat(log.weight);
       const rp = parseInt(log.reps, 10);
       if (!isNaN(wt) && !isNaN(rp)) {
@@ -125,7 +215,7 @@ export default function WorkoutTab({
     // Convert current logs to numbers
     const finalLogs: Record<string, { weight: number; reps: number }> = {};
     Object.entries(localLogs).forEach(([exId, logEntry]) => {
-      const log = logEntry as { weight: string; reps: string };
+      const log = logEntry as { weight?: string; reps?: string; duration?: string; steps?: string; assistance?: string };
       const wt = parseFloat(log.weight);
       const rp = parseInt(log.reps, 10);
       if (!isNaN(wt) && !isNaN(rp)) {
@@ -141,11 +231,9 @@ export default function WorkoutTab({
     setCustomSwapName("");
   };
 
-  const handleApplySwap = (exId: string, name: string) => {
-    if (name.trim()) {
-      onSaveExerciseSwap(exId, name.trim());
-      setSwappingExId(null);
-    }
+  const handleApplySwap = (exId: string, swapData: import("../types").CustomExerciseSwap | string) => {
+    onSaveExerciseSwap(exId, swapData);
+    setSwappingExId(null);
   };
 
   const handleResetSwap = (exId: string) => {
@@ -193,8 +281,12 @@ export default function WorkoutTab({
       <div className="space-y-4">
         {dayPlan.exercises.map((ex) => {
           // Resolve if swapped name exists
-          const currentName = swaps[ex.id] || ex.name;
-          const isSwapped = !!swaps[ex.id];
+          const swapData = swaps[ex.id];
+  const isSwapped = !!swapData;
+  const currentName = typeof swapData === 'string' ? swapData : (swapData?.name || ex.name);
+  const resolvedTrackingType = typeof swapData === 'object' ? swapData.trackingType : ex.trackingType;
+  const resolvedProgressMode = typeof swapData === 'object' ? swapData.progressMode : ex.progressMode;
+          
 
           // Lookup previous best set for progression comparison
           const prevBest = previousBestSets[currentName];
@@ -202,6 +294,9 @@ export default function WorkoutTab({
           // Set inputs
           const weightVal = localLogs[ex.id]?.weight || "";
           const repsVal = localLogs[ex.id]?.reps || "";
+          const durationVal = localLogs[ex.id]?.duration || "";
+          const stepsVal = localLogs[ex.id]?.steps || "";
+          const assistanceVal = localLogs[ex.id]?.assistance || "";
 
           // Get presets for swapping
           const originalRootName = ex.originalName;
@@ -270,19 +365,17 @@ export default function WorkoutTab({
                   {presetList.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mb-3">
                       {presetList.map((preset, index) => (
-                        <button
-                          key={index}
-                          onClick={() => handleApplySwap(ex.id, preset)}
+                        <button key={index} onClick={() => handleApplySwap(ex.id, preset)}
                           className="text-[10px] font-bold bg-white/5 border border-white/10 text-white px-2 py-1 rounded hover:bg-white/10 hover:border-white/20 transition-all uppercase tracking-wider"
                         >
-                          {preset}
+                          {preset.name}
                         </button>
                       ))}
                     </div>
                   )}
 
                   {/* Custom swap text input */}
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2">
                     <input
                       id={`swap-custom-input-${ex.id}`}
                       type="text"
@@ -291,15 +384,29 @@ export default function WorkoutTab({
                       onChange={(e) => setCustomSwapName(e.target.value)}
                       className="flex-1 text-xs py-1.5 px-3 rounded bg-white/5 border border-white/10"
                     />
+                    <select
+                      value={customSwapTracking}
+                      onChange={(e) => setCustomSwapTracking(e.target.value as any)}
+                      className="text-xs py-1.5 px-3 rounded bg-white/5 border border-white/10 text-white"
+                    >
+                      <option value="load_reps">Load + reps</option>
+                      <option value="reps_only">Reps only</option>
+                      <option value="duration">Duration</option>
+                      <option value="assistance_reps">Assistance + reps</option>
+                      <option value="completion">Completion only</option>
+                    </select>
                     <button
                       id={`swap-btn-save-custom-${ex.id}`}
-                      onClick={() => handleApplySwap(ex.id, customSwapName)}
+                      onClick={() => handleApplySwap(ex.id, {
+                        name: customSwapName,
+                        trackingType: customSwapTracking,
+                        progressMode: customSwapTracking === 'completion' ? 'none' : (customSwapTracking === 'duration' ? 'target_adherence' : 'weekly_best')
+                      })}
                       className="bg-white text-black text-xs font-bold px-3 py-1.5 rounded hover:bg-neutral-200 transition-colors uppercase tracking-wider"
                     >
                       Apply
                     </button>
                   </div>
-
                   {isSwapped && (
                     <button
                       id={`swap-btn-reset-${ex.id}`}
@@ -326,37 +433,144 @@ export default function WorkoutTab({
                 </span>
               </div>
 
-              {/* Log Input for "Best Set" (Weight x Reps) */}
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <label className="text-[10px] font-mono text-zinc-500 uppercase block mb-1 font-bold tracking-wider">
-                    Best Set Load ({settings.units === "imperial" ? "lbs" : "kg"})
-                  </label>
-                  <input
-                    id={`input-weight-${ex.id}`}
-                    type="number"
-                    step="any"
-                    placeholder="e.g. 135"
-                    value={weightVal}
-                    onChange={(e) => handleInputChange(ex.id, "weight", e.target.value)}
-                    className="w-full text-sm py-2 px-3 focus:border-white text-white rounded-xl"
-                  />
-                </div>
-                <div className="w-24">
-                  <label className="text-[10px] font-mono text-zinc-500 uppercase block mb-1 font-bold tracking-wider">
-                    Total Reps
-                  </label>
-                  <input
-                    id={`input-reps-${ex.id}`}
-                    type="number"
-                    placeholder="e.g. 8"
-                    value={repsVal}
-                    onChange={(e) => handleInputChange(ex.id, "reps", e.target.value)}
-                    className="w-full text-sm py-2 px-3 focus:border-white text-white rounded-xl"
-                  />
-                </div>
-
-                {/* Rest Timer Trigger */}
+              {/* Log Input for Exercise */}
+              <div className="flex items-center gap-3 relative">
+                {resolvedTrackingType === 'load_reps' && (
+                  <>
+                    <div className="flex-1">
+                      <label className="text-[10px] font-mono text-zinc-500 uppercase block mb-1 font-bold tracking-wider">
+                        Best Set Load {currentName.includes('DB ') ? "(per DB)" : ""}
+                      </label>
+                      <input
+                        id={`input-weight-${ex.id}`}
+                        type="number"
+                        step="any"
+                        placeholder="e.g. 135"
+                        value={weightVal}
+                        onChange={(e) => handleInputChange(ex.id, "weight", e.target.value)}
+                        className="w-full text-sm py-2 px-3 focus:border-white text-white rounded-xl bg-white/5 border border-white/10"
+                      />
+                    </div>
+                    <div className="w-24">
+                      <label className="text-[10px] font-mono text-zinc-500 uppercase block mb-1 font-bold tracking-wider">
+                        Reps {currentName.includes('1-Arm') || currentName.includes('Bulgarian') || currentName.includes('Split Squat') ? "(per side)" : ""}
+                      </label>
+                      <input
+                        id={`input-reps-${ex.id}`}
+                        type="number"
+                        placeholder="e.g. 8"
+                        value={repsVal}
+                        onChange={(e) => handleInputChange(ex.id, "reps", e.target.value)}
+                        className="w-full text-sm py-2 px-3 focus:border-white text-white rounded-xl bg-white/5 border border-white/10"
+                      />
+                    </div>
+                  </>
+                )}
+                
+                {resolvedTrackingType === 'reps_only' && (
+                  <div className="flex-1">
+                      <label className="text-[10px] font-mono text-zinc-500 uppercase block mb-1 font-bold tracking-wider">
+                        Total Reps
+                      </label>
+                      <input
+                        id={`input-reps-${ex.id}`}
+                        type="number"
+                        placeholder="e.g. 15"
+                        value={repsVal}
+                        onChange={(e) => handleInputChange(ex.id, "reps", e.target.value)}
+                        className="w-full text-sm py-2 px-3 focus:border-white text-white rounded-xl bg-white/5 border border-white/10"
+                      />
+                  </div>
+                )}
+                
+                {resolvedTrackingType === 'assistance_reps' && (
+                  <>
+                    <div className="flex-1">
+                      <label className="text-[10px] font-mono text-zinc-500 uppercase block mb-1 font-bold tracking-wider">
+                        Assistance ({settings.units === 'imperial' ? 'lbs' : 'kg'})
+                      </label>
+                      <input
+                        id={`input-assistance-${ex.id}`}
+                        type="number"
+                        step="any"
+                        placeholder="e.g. 50"
+                        value={assistanceVal}
+                        onChange={(e) => handleInputChange(ex.id, "assistance", e.target.value)}
+                        className="w-full text-sm py-2 px-3 focus:border-white text-white rounded-xl bg-white/5 border border-white/10"
+                      />
+                    </div>
+                    <div className="w-24">
+                      <label className="text-[10px] font-mono text-zinc-500 uppercase block mb-1 font-bold tracking-wider">
+                        Reps
+                      </label>
+                      <input
+                        id={`input-reps-${ex.id}`}
+                        type="number"
+                        placeholder="e.g. 8"
+                        value={repsVal}
+                        onChange={(e) => handleInputChange(ex.id, "reps", e.target.value)}
+                        className="w-full text-sm py-2 px-3 focus:border-white text-white rounded-xl bg-white/5 border border-white/10"
+                      />
+                    </div>
+                  </>
+                )}
+                
+                {resolvedTrackingType === 'duration' && (
+                  <div className="flex-1">
+                      <label className="text-[10px] font-mono text-zinc-500 uppercase block mb-1 font-bold tracking-wider">
+                        Duration {ex.category === 'core' ? "(Seconds)" : "(Minutes)"}
+                      </label>
+                      <input
+                        id={`input-duration-${ex.id}`}
+                        type="number"
+                        placeholder={ex.category === 'core' ? "e.g. 45" : "e.g. 20"}
+                        value={durationVal}
+                        onChange={(e) => handleInputChange(ex.id, "duration", e.target.value)}
+                        className="w-full text-sm py-2 px-3 focus:border-white text-white rounded-xl bg-white/5 border border-white/10"
+                      />
+                  </div>
+                )}
+                
+                {resolvedTrackingType === 'steps' && (
+                  <div className="flex-1">
+                      <label className="text-[10px] font-mono text-zinc-500 uppercase block mb-1 font-bold tracking-wider">
+                        Actual Steps
+                      </label>
+                      <input
+                        id={`input-steps-${ex.id}`}
+                        type="number"
+                        placeholder="e.g. 8500"
+                        value={stepsVal}
+                        onChange={(e) => handleInputChange(ex.id, "steps", e.target.value)}
+                        className="w-full text-sm py-2 px-3 focus:border-white text-white rounded-xl bg-white/5 border border-white/10"
+                      />
+                      {parseInt(stepsVal || "0") >= 8000 && (
+                        <div className="mt-2 text-[10px] text-emerald-500 font-mono font-bold tracking-wider uppercase flex items-center gap-1">
+                           <Check className="w-3 h-3" /> Target Met
+                        </div>
+                      )}
+                  </div>
+                )}
+                
+                {resolvedTrackingType === 'completion' && (
+                  <div className="flex-1 flex items-center">
+                      <button
+                        onClick={() => {
+                          const updated = { ...localLogs };
+                          if (updated[ex.id]?.completed) {
+                            delete updated[ex.id];
+                          } else {
+                            updated[ex.id] = { ...updated[ex.id], completed: true };
+                          }
+                          setLocalLogs(updated);
+                        }}
+                        className={`text-xs py-2 px-4 rounded-xl font-bold uppercase tracking-wider transition-colors ${localLogs[ex.id]?.completed ? 'bg-emerald-500 text-black' : 'bg-white/5 border border-white/10 text-white'}`}
+                      >
+                         {localLogs[ex.id]?.completed ? 'Completed' : 'Mark Done'}
+                      </button>
+                  </div>
+                )}
+              {/* Rest Timer Trigger */}
                 <div className="self-end pb-1 pr-1">
                   <button
                     id={`btn-trigger-timer-${ex.id}`}

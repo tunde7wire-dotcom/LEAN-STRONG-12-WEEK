@@ -16,7 +16,7 @@ interface ProgressTabProps {
   checkins: WeeklyCheckIn[];
   bestSetLogs: Record<string, BestSetLog>;
   weeklyBestSetLogs: WeeklyBestSetLogs;
-  exerciseSwaps: Record<string, string>;
+  exerciseSwaps: Record<string, import("../types").CustomExerciseSwap | string>;
   onLogWeight: (weight: number, date: string) => void;
   onDeleteWeight: (date: string) => void;
   onSaveCheckIn: (checkIn: WeeklyCheckIn) => void;
@@ -70,7 +70,39 @@ export default function ProgressTab({
   }, [selectedWeekNum, checkins]);
 
   // Strength Progression State
-  const loggedExercises = Object.keys(weeklyBestSetLogs).sort();
+  // Build a map of exercise names to their tracking metadata
+  const exerciseMetadata: Record<string, { trackingType: import("../types").TrackingType, progressMode: import("../types").ProgressMode, category?: string }> = {};
+  
+  // First from seeded plans
+  weeks.forEach(week => {
+    week.days.forEach(day => {
+      day.exercises.forEach(ex => {
+        exerciseMetadata[ex.name] = {
+          trackingType: ex.trackingType,
+          progressMode: ex.progressMode,
+          category: ex.category
+        };
+      });
+    });
+  });
+  
+  // Then override with custom swaps
+  Object.values(exerciseSwaps).forEach(swap => {
+    if (typeof swap === 'object') {
+      exerciseMetadata[swap.name] = {
+        trackingType: swap.trackingType,
+        progressMode: swap.progressMode
+      };
+    }
+  });
+  
+  // Filter logged exercises by progressMode
+  const loggedExercises = Object.keys(weeklyBestSetLogs).filter(name => {
+    const meta = exerciseMetadata[name];
+    // If we can't find metadata, default to showing it to preserve data
+    if (!meta) return true;
+    return meta.progressMode === 'weekly_best';
+  }).sort();
   const [selectedExercise, setSelectedExercise] = useState<string>(loggedExercises[0] || "");
 
   // Update selected exercise if the list changes and nothing is selected
@@ -253,11 +285,11 @@ export default function ProgressTab({
         </div>
       </div>
 
-      {/* Strength Progression Tracker */}
+      {/* Exercise Progress */}
       <div className="apple-card p-5 mb-6">
         <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-400 mb-3 flex items-center gap-1.5">
           <Dumbbell className="w-4 h-4 text-white" />
-          Strength Progression Tracker
+          Exercise Progress
         </h3>
         {loggedExercises.length > 0 ? (
           <div className="space-y-4">

@@ -195,10 +195,10 @@ export const getActiveWorkout = (): ActiveWorkoutState | null =>
 export const saveActiveWorkout = (state: ActiveWorkoutState | null) =>
   saveToLocalStorage(KEY_ACTIVE_WORKOUT, state);
 
-export const getExerciseSwaps = (): Record<string, string> =>
-  loadFromLocalStorage<Record<string, string>>(KEY_EXERCISE_SWAPS, {});
+export const getExerciseSwaps = (): Record<string, import("../types").CustomExerciseSwap | string> =>
+  loadFromLocalStorage<Record<string, import("../types").CustomExerciseSwap | string>>(KEY_EXERCISE_SWAPS, {});
 
-export const saveExerciseSwaps = (swaps: Record<string, string>) =>
+export const saveExerciseSwaps = (swaps: Record<string, import("../types").CustomExerciseSwap | string>) =>
   saveToLocalStorage(KEY_EXERCISE_SWAPS, swaps);
 
 // Reset database to default

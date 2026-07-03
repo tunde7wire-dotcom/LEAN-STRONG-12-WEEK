@@ -68,7 +68,7 @@ export default function App() {
   const [checkins, setCheckins] = useState<WeeklyCheckIn[]>(getWeeklyCheckIns);
   const [bestSetLogs, setBestSetLogs] = useState<Record<string, BestSetLog>>(getBestSetLogs);
   const [weeklyBestSetLogs, setWeeklyBestSetLogs] = useState<WeeklyBestSetLogs>(getWeeklyBestSetLogs);
-  const [exerciseSwaps, setExerciseSwaps] = useState<Record<string, string>>(getExerciseSwaps);
+  const [exerciseSwaps, setExerciseSwaps] = useState<Record<string, import("./types").CustomExerciseSwap | string>>(getExerciseSwaps);
   const [activeWorkout, setActiveWorkoutState] = useState<ActiveWorkoutState | null>(getActiveWorkout);
 
   // Timer State (Embedded in Bottom Floating Timer)
@@ -150,8 +150,8 @@ export default function App() {
   };
 
   // Swap exercise names
-  const handleSaveExerciseSwap = (originalId: string, customName: string) => {
-    const updated = { ...exerciseSwaps, [originalId]: customName };
+  const handleSaveExerciseSwap = (originalId: string, customSwap: import("./types").CustomExerciseSwap | string) => {
+    const updated = { ...exerciseSwaps, [originalId]: customSwap };
     setExerciseSwaps(updated);
     saveExerciseSwaps(updated);
   };
@@ -173,7 +173,7 @@ export default function App() {
   };
 
   // Complete Active Workout
-  const handleCompleteActiveWorkout = (loggedSets: Record<string, { weight: number; reps: number }>) => {
+  const handleCompleteActiveWorkout = (loggedSets: Record<string, { weight?: number; reps?: number; duration?: number; steps?: number; assistance?: number; completed?: boolean }>) => {
     const todayStr = getLocalTodayString();
     const newBestSetLogs = { ...bestSetLogs };
     const newWeeklyBestSetLogs = { ...weeklyBestSetLogs };
@@ -183,32 +183,55 @@ export default function App() {
       // Find the workout name (either original or swapped)
       const originalEx = SEEDED_PLANS[selectedWeekNum - 1].days[selectedDayIndex].exercises.find((e) => e.id === exId);
       if (originalEx) {
-        const resolvedName = exerciseSwaps[exId] || originalEx.name;
+        const swapData = exerciseSwaps[exId];
+        const resolvedName = typeof swapData === 'string' ? swapData : (swapData?.name || originalEx.name);
+        const resolvedTrackingType = typeof swapData === 'object' ? swapData.trackingType : originalEx.trackingType;
+        const resolvedProgressMode = typeof swapData === 'object' ? swapData.progressMode : originalEx.progressMode;
         
-        // Update all-time best
-        const prev = bestSetLogs[resolvedName];
-        if (!prev || log.weight > prev.weight || (log.weight === prev.weight && log.reps > prev.reps)) {
-          newBestSetLogs[resolvedName] = {
-            weight: log.weight,
-            reps: log.reps,
-            date: todayStr
+        if (resolvedProgressMode === 'weekly_best') {
+          // Helper to get score
+          const getScore = (l: any) => {
+            if (!l) return -1;
+            if (resolvedTrackingType === 'duration') return l.duration || 0;
+            if (resolvedTrackingType === 'steps') return l.steps || 0;
+            if (resolvedTrackingType === 'reps_only') return l.reps || 0;
+            if (resolvedTrackingType === 'assistance_reps') return (l.assistance ? (1000 - l.assistance) : l.reps) || 0;
+            return (l.weight && l.weight > 0) ? (l.weight * 1000 + l.reps) : (l.reps || 0); // rough load_reps score
           };
-        }
 
-        // Update weekly best
-        if (!newWeeklyBestSetLogs[resolvedName]) {
-          newWeeklyBestSetLogs[resolvedName] = {};
-        }
-        const prevWeekly = newWeeklyBestSetLogs[resolvedName][selectedWeekNum];
-        if (!prevWeekly || log.weight > prevWeekly.weight || (log.weight === prevWeekly.weight && log.reps > prevWeekly.reps)) {
-          newWeeklyBestSetLogs[resolvedName][selectedWeekNum] = {
-            weekNumber: selectedWeekNum,
-            exerciseId: exId,
-            exerciseName: resolvedName,
-            weight: log.weight,
-            reps: log.reps,
-            date: todayStr
-          };
+          const logScore = getScore(log);
+          
+          // Update all-time best
+          const prev = bestSetLogs[resolvedName];
+          if (!prev || logScore > getScore(prev)) {
+            newBestSetLogs[resolvedName] = {
+              weight: log.weight,
+              reps: log.reps,
+              duration: log.duration,
+              steps: log.steps,
+              assistance: log.assistance,
+              date: todayStr
+            };
+          }
+
+          // Update weekly best
+          if (!newWeeklyBestSetLogs[resolvedName]) {
+            newWeeklyBestSetLogs[resolvedName] = {};
+          }
+          const prevWeekly = newWeeklyBestSetLogs[resolvedName][selectedWeekNum];
+          if (!prevWeekly || logScore > getScore(prevWeekly)) {
+            newWeeklyBestSetLogs[resolvedName][selectedWeekNum] = {
+              weekNumber: selectedWeekNum,
+              exerciseId: exId,
+              exerciseName: resolvedName,
+              weight: log.weight,
+              reps: log.reps,
+              duration: log.duration,
+              steps: log.steps,
+              assistance: log.assistance,
+              date: todayStr
+            };
+          }
         }
       }
     });

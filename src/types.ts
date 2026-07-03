@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+export type TrackingType = "load_reps" | "duration" | "steps" | "completion" | "reps_only" | "assistance_reps";
+export type ProgressMode = "weekly_best" | "target_adherence" | "none";
+
 export interface Exercise {
   id: string;
   name: string;
@@ -14,6 +17,8 @@ export interface Exercise {
   isSuperset?: boolean;
   supersetWith?: string; // Exercise ID it is paired with
   category: "strength" | "cardio" | "core" | "mobility";
+  trackingType: TrackingType;
+  progressMode: ProgressMode;
 }
 
 export interface DayPlan {
@@ -49,6 +54,9 @@ export interface WeekPlan {
 export interface BestSetLog {
   weight: number;
   reps: number;
+  duration?: number;
+  steps?: number;
+  assistance?: number;
   date: string;
 }
 
@@ -61,6 +69,9 @@ export interface WeeklyBestSetLog {
   exerciseName: string;
   weight: number;
   reps: number;
+  duration?: number;
+  steps?: number;
+  assistance?: number;
   date: string;
 }
 
@@ -93,11 +104,17 @@ export interface ActiveWorkoutState {
   dayIndex: number; // 0 to 6
   startTime: number; // timestamp
   elapsedSeconds: number;
-  logs: Record<string, { weight: number; reps: number }>; // exerciseId -> { weight, reps }
+  logs: Record<string, { weight?: number; reps?: number; duration?: number; steps?: number; assistance?: number }>; // exerciseId -> { weight, reps, duration, steps, assistance }
   currentExerciseIndex: number;
   isActive: boolean;
   timerEndTime: number | null; // For persistent rest timer recovery
   timerDurationSeconds: number; // Current timer setting
+}
+
+export interface CustomExerciseSwap {
+  name: string;
+  trackingType: TrackingType;
+  progressMode: ProgressMode;
 }
 
 export interface StoredPDF {
