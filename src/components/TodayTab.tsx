@@ -7,6 +7,7 @@ import React, { useState, useEffect } from "react";
 import { CheckCircle2, Circle, Flame, Dumbbell, Award, Edit3, Save, Calendar, ArrowRight, Beef, Apple, Droplet } from "lucide-react";
 import { WeekPlan, DayPlan, AppSettings } from "../types";
 import { loadFromLocalStorage, saveToLocalStorage } from "../utils/db";
+import { getLocalTodayString } from "../utils/dateUtils";
 
 interface TodayTabProps {
   currentWeekNum: number;
@@ -38,6 +39,17 @@ export default function TodayTab({
   weightValueToday,
 }: TodayTabProps) {
   const noteKey = `lean_strong_note_W${currentWeekNum}_D${currentDayIndex}`;
+  const todayStr = getLocalTodayString();
+  const macrosKey = `lean_strong_macros_complete_${todayStr}`;
+  const [macrosComplete, setMacrosComplete] = useState(() => loadFromLocalStorage<boolean>(macrosKey, false));
+
+  const toggleMacrosComplete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newVal = !macrosComplete;
+    setMacrosComplete(newVal);
+    saveToLocalStorage(macrosKey, newVal);
+  };
+
   const [note, setNote] = useState(() => loadFromLocalStorage<string>(noteKey, ""));
   const [isSaved, setIsSaved] = useState(false);
 
@@ -82,16 +94,16 @@ export default function TodayTab({
       id: "macros",
       title: "Hit Macro Nutrient Targets",
       subtitle: `${macros.calories} kcal • ${macros.protein}g Protein`,
-      completed: false, // Self-check
+      completed: macrosComplete, // Manual check
       action: () => onNavigateToTab("meals"),
       icon: <Flame className="w-5 h-5 text-neutral-400" />
     }
   ];
 
-  // Calculate overall day percentage completed
   const workoutCompleted = settings.completedDays[`W${currentWeekNum}-D${currentDayIndex}`] ? 1 : 0;
-  const weighInCompleted = weightLoggedToday ? 1 : 0;
-  const totalCompleted = workoutCompleted + weighInCompleted;
+  // Calculate overall day percentage completed dynamically
+  const totalTasks = checklist.length;
+  const completedTasks = checklist.filter(item => item.completed).length;
 
   if (planStatus === 'pre-start') {
     const daysUntilStart = Math.abs(elapsedDays);
@@ -172,7 +184,7 @@ export default function TodayTab({
             <h3 className="text-sm font-bold uppercase tracking-tight text-white">Today's Focus</h3>
           </div>
           <span className="text-xs font-mono bg-white/10 border border-white/10 px-2.5 py-1 rounded-full text-white font-bold">
-            {totalCompleted}/2 DONE
+            {completedTasks}/{totalTasks} DONE
           </span>
         </div>
 
@@ -217,8 +229,24 @@ export default function TodayTab({
                     <p className="text-xs text-zinc-400 mt-0.5">{item.subtitle}</p>
                   </div>
                 </div>
-                <div className="flex items-center h-full">
-                  {isWorkoutRowClickable ? (
+                <div className="flex items-center gap-2 h-full">
+                  {item.id === "macros" ? (
+                    <>
+                      <button
+                        onClick={toggleMacrosComplete}
+                        className="text-xs font-bold border border-white/20 text-white py-1 px-3 rounded hover:bg-white/10 transition-colors uppercase tracking-wider"
+                      >
+                        {item.completed ? "Undo" : "Done"}
+                      </button>
+                      <button
+                        id={`btn-action-${item.id}`}
+                        onClick={item.action}
+                        className="text-xs font-bold bg-white text-black py-1 px-3 rounded hover:bg-neutral-200 transition-colors uppercase tracking-wider"
+                      >
+                        Go
+                      </button>
+                    </>
+                  ) : isWorkoutRowClickable ? (
                     <div className="p-1 text-neutral-500 flex items-center gap-1">
                       {item.completed && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
                       <ArrowRight className="w-4 h-4" />
