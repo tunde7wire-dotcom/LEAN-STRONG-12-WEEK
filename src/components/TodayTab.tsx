@@ -22,6 +22,7 @@ interface TodayTabProps {
   onNavigateToWeek: (weekNum: number) => void;
   weightLoggedToday: boolean;
   weightValueToday: number | null;
+  checkins: import("../types").WeeklyCheckIn[];
 }
 
 export default function TodayTab({
@@ -37,6 +38,7 @@ export default function TodayTab({
   onNavigateToWeek,
   weightLoggedToday,
   weightValueToday,
+  checkins,
 }: TodayTabProps) {
   const noteKey = `lean_strong_note_W${currentWeekNum}_D${currentDayIndex}`;
   const todayStr = getLocalTodayString();
@@ -76,6 +78,8 @@ export default function TodayTab({
 
   const currentDayOfWeek = new Date().getDay(); // Local day of week
   const isWeighInDay = currentDayOfWeek === 1 || currentDayOfWeek === 3 || currentDayOfWeek === 5;
+  const isWaistDay = currentDayOfWeek === 5;
+  const waistLoggedToday = checkins.some(c => c.waist !== undefined && c.date === todayStr);
 
   const fullChecklist = [
     {
@@ -95,6 +99,14 @@ export default function TodayTab({
       icon: <Calendar className="w-5 h-5 text-neutral-400" />
     },
     {
+      id: "waist",
+      title: "Weekly Waist Measurement",
+      subtitle: "Measure under consistent conditions for weekly trend tracking.",
+      completed: waistLoggedToday,
+      action: () => onNavigateToTab("progress"),
+      icon: <Award className="w-5 h-5 text-neutral-400" />
+    },
+    {
       id: "macros",
       title: "Hit Macro Nutrient Targets",
       subtitle: `${macros.calories} kcal • ${macros.protein}g Protein`,
@@ -106,6 +118,7 @@ export default function TodayTab({
 
   const checklist = fullChecklist.filter(item => {
     if (item.id === "weighin" && !isWeighInDay) return false;
+    if (item.id === "waist" && !isWaistDay) return false;
     return true;
   });
 

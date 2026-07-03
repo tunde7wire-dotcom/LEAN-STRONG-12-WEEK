@@ -498,6 +498,7 @@ export default function App() {
             }}
             weightLoggedToday={weightLoggedToday}
             weightValueToday={weightValueToday}
+            checkins={checkins}
           />
         )}
 
