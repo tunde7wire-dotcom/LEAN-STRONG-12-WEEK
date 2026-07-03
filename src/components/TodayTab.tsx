@@ -73,7 +73,11 @@ export default function TodayTab({
   };
 
   // Checklist computation
-  const checklist = [
+
+  const currentDayOfWeek = new Date().getDay(); // Local day of week
+  const isWeighInDay = currentDayOfWeek === 1 || currentDayOfWeek === 3 || currentDayOfWeek === 5;
+
+  const fullChecklist = [
     {
       id: "workout",
       title: dayPlan.exercises.length > 1 ? `Log Workout: ${dayPlan.name}` : `Active Recovery: ${dayPlan.name}`,
@@ -99,6 +103,11 @@ export default function TodayTab({
       icon: <Flame className="w-5 h-5 text-neutral-400" />
     }
   ];
+
+  const checklist = fullChecklist.filter(item => {
+    if (item.id === "weighin" && !isWeighInDay) return false;
+    return true;
+  });
 
   const workoutCompleted = settings.completedDays[`W${currentWeekNum}-D${currentDayIndex}`] ? 1 : 0;
   // Calculate overall day percentage completed dynamically
