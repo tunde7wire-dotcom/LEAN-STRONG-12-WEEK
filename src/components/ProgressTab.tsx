@@ -99,9 +99,7 @@ export default function ProgressTab({
   // Filter logged exercises by progressMode
   const loggedExercises = Object.keys(weeklyBestSetLogs).filter(name => {
     const meta = exerciseMetadata[name];
-    // If we can't find metadata, default to showing it to preserve data
-    if (!meta) return true;
-    return meta.progressMode === 'weekly_best';
+    return meta && meta.progressMode === 'weekly_best';
   }).sort();
   const [selectedExercise, setSelectedExercise] = useState<string>(loggedExercises[0] || "");
 

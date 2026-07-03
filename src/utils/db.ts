@@ -157,8 +157,27 @@ export const getBestSetLogs = (): Record<string, BestSetLog> =>
 export const saveBestSetLogs = (logs: Record<string, BestSetLog>) =>
   saveToLocalStorage(KEY_BEST_SETS, logs);
 
-export const getWeeklyBestSetLogs = (): import("../types").WeeklyBestSetLogs =>
-  loadFromLocalStorage<import("../types").WeeklyBestSetLogs>(KEY_WEEKLY_BEST_SETS, {});
+export const getWeeklyBestSetLogs = (): import("../types").WeeklyBestSetLogs => {
+  const data = loadFromLocalStorage<import("../types").WeeklyBestSetLogs>(KEY_WEEKLY_BEST_SETS, {});
+  if (data["Bike Zone 2"]) {
+    let modified = false;
+    Object.keys(data["Bike Zone 2"]).forEach(wk => {
+      const log = data["Bike Zone 2"][wk];
+      if (log.weight !== undefined || log.reps !== undefined) {
+        delete data["Bike Zone 2"][wk];
+        modified = true;
+      }
+    });
+    if (Object.keys(data["Bike Zone 2"]).length === 0) {
+      delete data["Bike Zone 2"];
+      modified = true;
+    }
+    if (modified) {
+      saveToLocalStorage(KEY_WEEKLY_BEST_SETS, data);
+    }
+  }
+  return data;
+};
 
 export const saveWeeklyBestSetLogs = (logs: import("../types").WeeklyBestSetLogs) =>
   saveToLocalStorage(KEY_WEEKLY_BEST_SETS, logs);

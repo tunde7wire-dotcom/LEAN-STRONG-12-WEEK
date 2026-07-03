@@ -86,28 +86,23 @@ export default function App() {
           if (plan && !plan.isTrainingDay) {
             let complete = true;
             plan.exercises.forEach(ex => {
-              if (ex.required) {
+              if (ex.required && ex.minimumSteps) {
                 // Check if the user is currently editing this workout
                 const isActiveEditing = activeWorkout && activeWorkout.weekNumber === w && activeWorkout.dayIndex === d;
                 let stepCount = 0;
-                let hasLog = false;
                 
                 if (isActiveEditing && activeWorkout.logs[ex.id]) {
-                  hasLog = true;
                   stepCount = activeWorkout.logs[ex.id].steps || 0;
                 } else {
                   const swapData = exerciseSwaps[ex.id];
                   const resolvedName = typeof swapData === 'string' ? swapData : (swapData?.name || ex.name);
                   const weeklyLog = weeklyBestSetLogs[resolvedName]?.[w];
                   if (weeklyLog) {
-                    hasLog = true;
                     stepCount = weeklyLog.steps || 0;
                   }
                 }
                 
-                if (!hasLog) {
-                  complete = false;
-                } else if (ex.minimumSteps && stepCount < ex.minimumSteps) {
+                if (stepCount < ex.minimumSteps) {
                   complete = false;
                 }
               }
@@ -303,6 +298,7 @@ export default function App() {
     let isDayComplete = true;
     let unmetStepTarget = false;
 
+    let unmetDurationTarget = false;
     if (!dayPlan.isTrainingDay) {
       // For active recovery, calculate completion based on logs
       dayPlan.exercises.forEach(ex => {
@@ -314,6 +310,10 @@ export default function App() {
             if (ex.minimumSteps && (log.steps || 0) < ex.minimumSteps) {
               isDayComplete = false;
               unmetStepTarget = true;
+            }
+            if (ex.name === "Bike Zone 2" && (log.duration || 0) < 25) {
+              isDayComplete = false;
+              unmetDurationTarget = true;
             }
           }
         }
@@ -363,7 +363,9 @@ export default function App() {
       setActiveWorkoutState(newActiveWorkout);
       saveActiveWorkout(newActiveWorkout);
       
-      if (unmetStepTarget) {
+      if (unmetDurationTarget) {
+        alert("Session saved. Complete at least 25 minutes of Bike Zone 2 to finish this session.");
+      } else if (unmetStepTarget) {
         alert("Session saved. Step target not yet met.");
       } else {
         alert("Session saved. Some required activities are incomplete.");

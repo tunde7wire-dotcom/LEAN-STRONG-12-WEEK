@@ -191,13 +191,37 @@ export default function WorkoutTab({
     setLocalLogs(updated);
 
     // Build the format for active workout storage
-    const logsForParent: Record<string, { weight: number; reps: number }> = {};
+    const logsForParent: Record<string, any> = {};
     Object.entries(updated).forEach(([exId, logEntry]) => {
-      const log = logEntry as { weight?: string; reps?: string; duration?: string; steps?: string; assistance?: string };
-      const wt = parseFloat(log.weight);
-      const rp = parseInt(log.reps, 10);
-      if (!isNaN(wt) && !isNaN(rp)) {
-        logsForParent[exId] = { weight: wt, reps: rp };
+      const log = logEntry as { weight?: string; reps?: string; duration?: string; steps?: string; assistance?: string; completed?: boolean };
+      const out: any = {};
+      
+      if (log.weight !== undefined && log.weight !== "") {
+        const wt = parseFloat(log.weight);
+        if (!isNaN(wt)) out.weight = wt;
+      }
+      if (log.reps !== undefined && log.reps !== "") {
+        const rp = parseInt(log.reps, 10);
+        if (!isNaN(rp)) out.reps = rp;
+      }
+      if (log.duration !== undefined && log.duration !== "") {
+        const dur = parseFloat(log.duration);
+        if (!isNaN(dur) && dur > 0) out.duration = dur;
+      }
+      if (log.steps !== undefined && log.steps !== "") {
+        const st = parseInt(log.steps, 10);
+        if (!isNaN(st) && st > 0) out.steps = st;
+      }
+      if (log.assistance !== undefined && log.assistance !== "") {
+        const ast = parseFloat(log.assistance);
+        if (!isNaN(ast)) out.assistance = ast;
+      }
+      if (log.completed !== undefined) {
+        out.completed = log.completed;
+      }
+      
+      if (Object.keys(out).length > 0) {
+        logsForParent[exId] = out;
       }
     });
 
@@ -225,12 +249,29 @@ export default function WorkoutTab({
       const log = logEntry as { weight?: string; reps?: string; duration?: string; steps?: string; assistance?: string; completed?: boolean };
       
       const parsed: any = {};
-      if (log.weight) parsed.weight = parseFloat(log.weight);
-      if (log.reps) parsed.reps = parseInt(log.reps, 10);
-      if (log.duration) parsed.duration = parseFloat(log.duration);
-      if (log.steps) parsed.steps = parseInt(log.steps, 10);
-      if (log.assistance) parsed.assistance = parseFloat(log.assistance);
-      if (log.completed !== undefined) parsed.completed = log.completed;
+      if (log.weight !== undefined && log.weight !== "") {
+        const wt = parseFloat(log.weight);
+        if (!isNaN(wt)) parsed.weight = wt;
+      }
+      if (log.reps !== undefined && log.reps !== "") {
+        const rp = parseInt(log.reps, 10);
+        if (!isNaN(rp)) parsed.reps = rp;
+      }
+      if (log.duration !== undefined && log.duration !== "") {
+        const dur = parseFloat(log.duration);
+        if (!isNaN(dur) && dur > 0) parsed.duration = dur;
+      }
+      if (log.steps !== undefined && log.steps !== "") {
+        const st = parseInt(log.steps, 10);
+        if (!isNaN(st) && st > 0) parsed.steps = st;
+      }
+      if (log.assistance !== undefined && log.assistance !== "") {
+        const ast = parseFloat(log.assistance);
+        if (!isNaN(ast)) parsed.assistance = ast;
+      }
+      if (log.completed !== undefined) {
+        parsed.completed = log.completed;
+      }
       
       if (Object.keys(parsed).length > 0) {
         finalLogs[exId] = parsed;
