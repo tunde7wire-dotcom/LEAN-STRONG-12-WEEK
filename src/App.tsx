@@ -69,6 +69,60 @@ export default function App() {
   const [bestSetLogs, setBestSetLogs] = useState<Record<string, BestSetLog>>(getBestSetLogs);
   const [weeklyBestSetLogs, setWeeklyBestSetLogs] = useState<WeeklyBestSetLogs>(getWeeklyBestSetLogs);
   const [exerciseSwaps, setExerciseSwaps] = useState<Record<string, import("./types").CustomExerciseSwap | string>>(getExerciseSwaps);
+
+  // Dynamically calculate completion
+  const getDerivedCompletedDays = () => {
+    const derived = { ...settings.completedDays };
+    // For each completed day, check if it's an active recovery day with unmet steps
+    Object.keys(derived).forEach(key => {
+      if (derived[key]) {
+        const match = key.match(/W(\d+)-D(\d+)/);
+        if (match) {
+          const w = parseInt(match[1], 10);
+          const d = parseInt(match[2], 10);
+          const plan = SEEDED_PLANS[w - 1]?.days[d];
+          if (plan && !plan.isTrainingDay) {
+            let complete = true;
+            plan.exercises.forEach(ex => {
+              if (ex.required) {
+                // Check if the user is currently editing this workout
+                const isActiveEditing = activeWorkoutState && activeWorkoutState.weekNumber === w && activeWorkoutState.dayIndex === d;
+                let stepCount = 0;
+                let hasLog = false;
+                
+                if (isActiveEditing && activeWorkoutState.logs[ex.id]) {
+                  hasLog = true;
+                  stepCount = activeWorkoutState.logs[ex.id].steps || 0;
+                } else {
+                  const swapData = exerciseSwaps[ex.id];
+                  const resolvedName = typeof swapData === 'string' ? swapData : (swapData?.name || ex.name);
+                  const weeklyLog = weeklyBestSetLogs[resolvedName]?.[w];
+                  if (weeklyLog) {
+                    hasLog = true;
+                    stepCount = weeklyLog.steps || 0;
+                  }
+                }
+                
+                if (!hasLog) {
+                  complete = false;
+                } else if (ex.minimumSteps && stepCount < ex.minimumSteps) {
+                  complete = false;
+                }
+              }
+            });
+            if (!complete) {
+              derived[key] = false;
+            }
+          }
+        }
+      }
+    });
+    return derived;
+  };
+
+  const derivedCompletedDays = getDerivedCompletedDays();
+  const derivedSettings = { ...settings, completedDays: derivedCompletedDays };
+
   const [activeWorkout, setActiveWorkoutState] = useState<ActiveWorkoutState | null>(getActiveWorkout);
 
   // Timer State (Embedded in Bottom Floating Timer)
@@ -244,10 +298,34 @@ export default function App() {
     saveWeeklyBestSetLogs(newWeeklyBestSetLogs);
 
     // Save completed day status
-    const updatedCompletedDays = {
-      ...settings.completedDays,
-      [`W${selectedWeekNum}-D${selectedDayIndex}`]: true
-    };
+    const dayPlan = SEEDED_PLANS[selectedWeekNum - 1].days[selectedDayIndex];
+    let isDayComplete = true;
+    let unmetStepTarget = false;
+
+    if (!dayPlan.isTrainingDay) {
+      // For active recovery, calculate completion based on logs
+      dayPlan.exercises.forEach(ex => {
+        if (ex.required) {
+          const log = loggedSets[ex.id];
+          if (!log) {
+            isDayComplete = false;
+          } else {
+            if (ex.minimumSteps && (log.steps || 0) < ex.minimumSteps) {
+              isDayComplete = false;
+              unmetStepTarget = true;
+            }
+          }
+        }
+      });
+    }
+
+    const updatedCompletedDays = { ...settings.completedDays };
+    if (isDayComplete) {
+      updatedCompletedDays[`W${selectedWeekNum}-D${selectedDayIndex}`] = true;
+    } else {
+      delete updatedCompletedDays[`W${selectedWeekNum}-D${selectedDayIndex}`];
+    }
+
     const updatedSettings = {
       ...settings,
       completedDays: updatedCompletedDays
@@ -255,12 +333,47 @@ export default function App() {
     setSettings(updatedSettings);
     saveAppSettings(updatedSettings);
 
-    // Clear active workout state
-    setActiveWorkoutState(null);
-    saveActiveWorkout(null);
-    setTimerEndTime(null);
+    // Only clear if the day is complete, or if it's training day (where we just mark complete)? 
+    // Wait, if unmetStepTarget, do we clear the active workout? 
+    // The prompt says:
+    // If the user taps the completion action while the required step threshold is unmet:
+    // - save the entered data
+    // - keep the overall day incomplete
+    // - show a small explanation such as: “Step target not yet met.”
+    // - do not add a "Complete anyway" override.
+    
+    // We already save the bestSetLogs which acts as the entered data.
+    // BUT what about ActiveWorkoutState? If we clear it, the user will lose uncommitted data if they haven't finished? 
+    // But they just clicked complete. Let's just save the logs to ActiveWorkoutState so it's not lost.
+    
+    if (!isDayComplete) {
+      // Just save active workout so data isn't lost
+      const newActiveWorkout = {
+        weekNumber: selectedWeekNum,
+        dayIndex: selectedDayIndex,
+        startTime: activeWorkoutState?.startTime || Date.now(),
+        elapsedSeconds: activeWorkoutState?.elapsedSeconds || 0,
+        logs: loggedSets as any,
+        currentExerciseIndex: 0,
+        isActive: true,
+        timerEndTime: timerEndTime,
+        timerDurationSeconds: 0
+      };
+      setActiveWorkoutState(newActiveWorkout);
+      saveActiveWorkout(newActiveWorkout);
+      
+      if (unmetStepTarget) {
+        alert("Session saved. Step target not yet met.");
+      } else {
+        alert("Session saved. Some required activities are incomplete.");
+      }
+    } else {
+      setActiveWorkoutState(null);
+      saveActiveWorkout(null);
+      setTimerEndTime(null);
+      alert("Workout successfully completed! Excellent progression effort. Rest timer cleared.");
+    }
 
-    alert("Workout successfully completed! Excellent progression effort. Rest timer cleared.");
     
     // Redirect back to Weekly Planner
     setActiveTab("overview");
@@ -369,7 +482,7 @@ export default function App() {
             currentDayIndex={liveDayIndex}
             weekPlan={SEEDED_PLANS[liveWeekNum - 1] || SEEDED_PLANS[0]}
             dayPlan={(SEEDED_PLANS[liveWeekNum - 1] || SEEDED_PLANS[0]).days[liveDayIndex] || SEEDED_PLANS[0].days[0]}
-            settings={settings}
+            settings={derivedSettings}
             planStatus={planStatus}
             elapsedDays={elapsedDays}
             onStartWorkout={() => {
@@ -393,7 +506,7 @@ export default function App() {
             <WeeklyTab
               selectedWeekNum={selectedWeekNum}
               weekPlan={weekPlan}
-              settings={settings}
+              settings={derivedSettings}
               checkins={checkins}
               onBackToOverview={() => setSelectedWeekNum(0)}
               onSelectDay={handleSelectDayFromWeekly}
@@ -403,7 +516,7 @@ export default function App() {
             <OverviewTab
               currentWeekNum={planStatus === "active" ? liveWeekNum : 0}
               weeks={SEEDED_PLANS}
-              settings={settings}
+              settings={derivedSettings}
               checkins={checkins}
               onSelectWeek={handleSelectWeekFromRoadmap}
             />
@@ -417,7 +530,7 @@ export default function App() {
             dayIndex={selectedDayIndex}
             weekPlan={weekPlan}
             dayPlan={dayPlan}
-            settings={settings}
+            settings={derivedSettings}
             activeWorkout={activeWorkout}
             previousBestSets={bestSetLogs}
             swaps={exerciseSwaps}
@@ -443,7 +556,7 @@ export default function App() {
           <ProgressTab
             selectedWeekNum={selectedWeekNum || liveWeekNum}
             weeks={SEEDED_PLANS}
-            settings={settings}
+            settings={derivedSettings}
             weightLogs={weightLogs}
             checkins={checkins}
             bestSetLogs={bestSetLogs}
@@ -457,7 +570,7 @@ export default function App() {
 
         {activeTab === "settings" && (
           <SettingsTab
-            settings={settings}
+            settings={derivedSettings}
             onUpdateSettings={handleUpdateSettings}
             onClearAllData={handleClearAllData}
           />

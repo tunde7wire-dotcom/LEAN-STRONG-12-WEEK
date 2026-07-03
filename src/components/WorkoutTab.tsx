@@ -159,8 +159,15 @@ export default function WorkoutTab({
     // If there is an activeWorkout, restore it
     if (activeWorkout && activeWorkout.weekNumber === selectedWeekNum && activeWorkout.dayIndex === dayIndex) {
       const restored: Record<string, { weight?: string; reps?: string; duration?: string; steps?: string; assistance?: string; completed?: boolean }> = {};
-      Object.entries(activeWorkout.logs).forEach(([exId, log]) => {
-        restored[exId] = { weight: log.weight.toString(), reps: log.reps.toString() };
+      Object.entries(activeWorkout.logs).forEach(([exId, log]: [string, any]) => {
+        restored[exId] = { 
+          weight: log.weight !== undefined ? log.weight.toString() : "", 
+          reps: log.reps !== undefined ? log.reps.toString() : "",
+          duration: log.duration !== undefined ? log.duration.toString() : "",
+          steps: log.steps !== undefined ? log.steps.toString() : "",
+          assistance: log.assistance !== undefined ? log.assistance.toString() : "",
+          completed: log.completed
+        };
       });
       return restored;
     }
@@ -212,14 +219,21 @@ export default function WorkoutTab({
   };
 
   const handleComplete = () => {
-    // Convert current logs to numbers
-    const finalLogs: Record<string, { weight: number; reps: number }> = {};
+    // Convert current logs to numbers where applicable
+    const finalLogs: Record<string, { weight?: number; reps?: number; duration?: number; steps?: number; assistance?: number; completed?: boolean }> = {};
     Object.entries(localLogs).forEach(([exId, logEntry]) => {
-      const log = logEntry as { weight?: string; reps?: string; duration?: string; steps?: string; assistance?: string };
-      const wt = parseFloat(log.weight);
-      const rp = parseInt(log.reps, 10);
-      if (!isNaN(wt) && !isNaN(rp)) {
-        finalLogs[exId] = { weight: wt, reps: rp };
+      const log = logEntry as { weight?: string; reps?: string; duration?: string; steps?: string; assistance?: string; completed?: boolean };
+      
+      const parsed: any = {};
+      if (log.weight) parsed.weight = parseFloat(log.weight);
+      if (log.reps) parsed.reps = parseInt(log.reps, 10);
+      if (log.duration) parsed.duration = parseFloat(log.duration);
+      if (log.steps) parsed.steps = parseInt(log.steps, 10);
+      if (log.assistance) parsed.assistance = parseFloat(log.assistance);
+      if (log.completed !== undefined) parsed.completed = log.completed;
+      
+      if (Object.keys(parsed).length > 0) {
+        finalLogs[exId] = parsed;
       }
     });
 
@@ -544,11 +558,15 @@ export default function WorkoutTab({
                         onChange={(e) => handleInputChange(ex.id, "steps", e.target.value)}
                         className="w-full text-sm py-2 px-3 focus:border-white text-white rounded-xl bg-white/5 border border-white/10"
                       />
-                      {parseInt(stepsVal || "0") >= 8000 && (
-                        <div className="mt-2 text-[10px] text-emerald-500 font-mono font-bold tracking-wider uppercase flex items-center gap-1">
-                           <Check className="w-3 h-3" /> Target Met
-                        </div>
-                      )}
+                      {ex.minimumSteps ? (
+                          <div className="mt-2 text-[10px] font-mono font-bold tracking-wider uppercase flex items-center gap-1">
+                            {parseInt(stepsVal || "0") >= ex.minimumSteps ? (
+                              <span className="text-emerald-500 flex items-center gap-1"><Check className="w-3 h-3" /> STEP TARGET MET</span>
+                            ) : (
+                              <span className="text-amber-500 flex items-center gap-1">{ex.minimumSteps - parseInt(stepsVal || "0")} steps remaining • STEP TARGET NOT MET</span>
+                            )}
+                          </div>
+                        ) : null}
                   </div>
                 )}
                 

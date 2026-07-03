@@ -19,6 +19,8 @@ export interface Exercise {
   category: "strength" | "cardio" | "core" | "mobility";
   trackingType: TrackingType;
   progressMode: ProgressMode;
+  minimumSteps?: number;
+  required?: boolean;
 }
 
 export interface DayPlan {
@@ -115,6 +117,8 @@ export interface CustomExerciseSwap {
   name: string;
   trackingType: TrackingType;
   progressMode: ProgressMode;
+  minimumSteps?: number;
+  required?: boolean;
 }
 
 export interface StoredPDF {

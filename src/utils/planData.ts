@@ -49,6 +49,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           reps: "25-35 min",
           tempoCue: "Continuous low-intensity steady state (LISS)",
           effortCue: `RPE 4-5. Talk-test pace.${deloadCue}`,
+          required: true,
           category: "cardio", trackingType: "duration", progressMode: "target_adherence"
         },
         {
@@ -59,6 +60,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           reps: "5-10 min",
           tempoCue: "Slow and controlled",
           effortCue: "Focus on hip flexors, thoracic spine, and hamstrings.",
+          required: false,
           category: "mobility", trackingType: "duration", progressMode: "target_adherence"
         }
       ]
@@ -76,6 +78,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           reps: weekNumber <= 2 ? "6-8" : "6-10",
           tempoCue: "3-0-1-0 tempo (3s negative, 1s up)",
           effortCue: `RPE 8-9. Control the descent.${deloadCue}`,
+          required: true,
           category: "strength", trackingType: "load_reps", progressMode: "weekly_best"
         },
         {
@@ -86,6 +89,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           reps: weekNumber <= 2 ? "6-10" : "6-10",
           tempoCue: "2-0-1-0 tempo",
           effortCue: `RPE 8-9. Push from heels, keep shoulder blades packed.${deloadCue}`,
+          required: true,
           category: "strength", trackingType: "load_reps", progressMode: "weekly_best"
         },
         {
@@ -98,6 +102,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           effortCue: `RPE 8. Squeeze shoulder blades together.${deloadCue}`,
           isSuperset: true,
           supersetWith: `w${weekNumber}-d2-ex4`,
+          required: true,
           category: "strength", trackingType: "load_reps", progressMode: "weekly_best"
         },
         {
@@ -110,6 +115,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           effortCue: `RPE 8. Push hips back, feel deep stretch in hamstrings.${deloadCue}`,
           isSuperset: true,
           supersetWith: `w${weekNumber}-d2-ex3`,
+          required: true,
           category: "strength", trackingType: "load_reps", progressMode: "weekly_best"
         },
         {
@@ -120,6 +126,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           reps: "12-20",
           tempoCue: "1-0-1-1 tempo",
           effortCue: `RPE 9. Keep pinkies slightly up, lead with elbows.${deloadCue}`,
+          required: true,
           category: "strength", trackingType: "load_reps", progressMode: "weekly_best"
         },
         {
@@ -130,6 +137,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           reps: "30-60s",
           tempoCue: "Maximum contraction",
           effortCue: `Focus on rigid brace and glute squeeze.${deloadCue}`,
+          required: true,
           category: "core", trackingType: "duration", progressMode: "weekly_best"
         }
       ]
@@ -144,7 +152,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           name: "Steps Focus Only",
           originalName: "Steps Focus Only",
           sets: "1",
-          reps: "8,000-10,000 steps",
+          reps: "8,000-10,000 steps", minimumSteps: 8000, required: true,
           tempoCue: "Normal walking speed",
           effortCue: "Outdoor active walk. Low stress recovery.",
           category: "cardio", trackingType: "steps", progressMode: "target_adherence"
@@ -157,6 +165,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           reps: "10 min",
           tempoCue: "Relaxed deep stretches",
           effortCue: "Target lower body tightness.",
+          required: false,
           category: "mobility", trackingType: "duration", progressMode: "target_adherence"
         }
       ]
@@ -174,6 +183,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           reps: weekNumber <= 2 ? "6-8" : "6-10",
           tempoCue: "3-0-1-0 tempo",
           effortCue: `RPE 8-9. Load the hamstrings and keep back completely flat.${deloadCue}`,
+          required: true,
           category: "strength", trackingType: "load_reps", progressMode: "weekly_best"
         },
         {
@@ -184,6 +194,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           reps: weekNumber <= 2 ? "6-10" : "6-10",
           tempoCue: "2-0-1-0 tempo",
           effortCue: `RPE 8-9. Control weight down to ear-level.${deloadCue}`,
+          required: true,
           category: "strength", trackingType: "load_reps", progressMode: "weekly_best"
         },
         {
@@ -196,6 +207,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           effortCue: `RPE 8. Pull with elbows, chest up tall.${deloadCue}`,
           isSuperset: true,
           supersetWith: `w${weekNumber}-d4-ex4`,
+          required: true,
           category: "strength", trackingType: "load_reps", progressMode: "weekly_best"
         },
         {
@@ -208,6 +220,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           effortCue: `RPE 8. Maintain upright posture, drive through front heel.${deloadCue}`,
           isSuperset: true,
           supersetWith: `w${weekNumber}-d4-ex3`,
+          required: true,
           category: "strength", trackingType: "load_reps", progressMode: "weekly_best"
         },
         {
@@ -218,6 +231,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           reps: "12-15",
           tempoCue: "1-0-1-2 tempo",
           effortCue: `RPE 8-9. Pull rope towards ears, squeeze rear delts.${deloadCue}`,
+          required: true,
           category: "strength", trackingType: "load_reps", progressMode: "weekly_best"
         },
         {
@@ -228,6 +242,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           reps: "10-15",
           tempoCue: "2-0-1-1 tempo",
           effortCue: `RPE 8. Contract abs to pull head towards knees, don't use arms.${deloadCue}`,
+          required: true,
           category: "core", trackingType: "load_reps", progressMode: "weekly_best"
         }
       ],
@@ -244,7 +259,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           name: "Steps Focus Only",
           originalName: "Steps Focus Only",
           sets: "1",
-          reps: "8,000-10,000 steps",
+          reps: "8,000-10,000 steps", minimumSteps: 8000, required: true,
           tempoCue: "Active brisk walk",
           effortCue: "Promotes cardiovascular health and blood flow for muscle recovery.",
           category: "cardio", trackingType: "steps", progressMode: "target_adherence"
@@ -264,6 +279,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           reps: "8 / leg",
           tempoCue: "3-0-1-0 tempo",
           effortCue: `RPE 9. Elevate back leg. Keep torso slightly leaning forward.${deloadCue}`,
+          required: true,
           category: "strength", trackingType: "load_reps", progressMode: "weekly_best"
         },
         {
@@ -274,6 +290,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           reps: weekNumber <= 2 ? "8-12" : "8-12",
           tempoCue: "2-1-1-0 tempo",
           effortCue: `RPE 8-9. Bench at 30-45 degree angle. Squeeze chest.${deloadCue}`,
+          required: true,
           category: "strength", trackingType: "load_reps", progressMode: "weekly_best"
         },
         {
@@ -284,6 +301,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           reps: "10-12",
           tempoCue: "2-1-1-1 tempo",
           effortCue: `RPE 8. Reach at the start of each rep for deep lat stretch.${deloadCue}`,
+          required: true,
           category: "strength", trackingType: "load_reps", progressMode: "weekly_best"
         },
         {
@@ -294,6 +312,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           reps: "8-12",
           tempoCue: "2-0-1-2 tempo (2s pause at top)",
           effortCue: `RPE 9. Keep chin tucked and drive through heels to lock out.${deloadCue}`,
+          required: true,
           category: "strength", trackingType: "load_reps", progressMode: "weekly_best"
         },
         {
@@ -304,6 +323,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           reps: "10-12",
           tempoCue: "2-0-1-0 tempo",
           effortCue: `RPE 9. Keep elbows locked to your sides.${deloadCue}`,
+          required: true,
           category: "strength", trackingType: "load_reps", progressMode: "weekly_best"
         },
         {
@@ -314,6 +334,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           reps: "10-12",
           tempoCue: "2-0-1-1 tempo",
           effortCue: `RPE 9. Flout ropes at the bottom of the movement.${deloadCue}`,
+          required: true,
           category: "strength", trackingType: "load_reps", progressMode: "weekly_best"
         }
       ]
@@ -331,6 +352,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
           reps: "Optional 20-30 min walk",
           tempoCue: "Relaxed",
           effortCue: "Mental recharge and physical prep for the upcoming week.",
+          required: true,
           category: "cardio", trackingType: "duration", progressMode: "target_adherence"
         }
       ]
