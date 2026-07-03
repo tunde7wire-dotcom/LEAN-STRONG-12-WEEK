@@ -70,6 +70,8 @@ export default function App() {
   const [weeklyBestSetLogs, setWeeklyBestSetLogs] = useState<WeeklyBestSetLogs>(getWeeklyBestSetLogs);
   const [exerciseSwaps, setExerciseSwaps] = useState<Record<string, import("./types").CustomExerciseSwap | string>>(getExerciseSwaps);
 
+  const [activeWorkout, setActiveWorkoutState] = useState<ActiveWorkoutState | null>(getActiveWorkout);
+
   // Dynamically calculate completion
   const getDerivedCompletedDays = () => {
     const derived = { ...settings.completedDays };
@@ -86,13 +88,13 @@ export default function App() {
             plan.exercises.forEach(ex => {
               if (ex.required) {
                 // Check if the user is currently editing this workout
-                const isActiveEditing = activeWorkoutState && activeWorkoutState.weekNumber === w && activeWorkoutState.dayIndex === d;
+                const isActiveEditing = activeWorkout && activeWorkout.weekNumber === w && activeWorkout.dayIndex === d;
                 let stepCount = 0;
                 let hasLog = false;
                 
-                if (isActiveEditing && activeWorkoutState.logs[ex.id]) {
+                if (isActiveEditing && activeWorkout.logs[ex.id]) {
                   hasLog = true;
-                  stepCount = activeWorkoutState.logs[ex.id].steps || 0;
+                  stepCount = activeWorkout.logs[ex.id].steps || 0;
                 } else {
                   const swapData = exerciseSwaps[ex.id];
                   const resolvedName = typeof swapData === 'string' ? swapData : (swapData?.name || ex.name);
@@ -123,7 +125,6 @@ export default function App() {
   const derivedCompletedDays = getDerivedCompletedDays();
   const derivedSettings = { ...settings, completedDays: derivedCompletedDays };
 
-  const [activeWorkout, setActiveWorkoutState] = useState<ActiveWorkoutState | null>(getActiveWorkout);
 
   // Timer State (Embedded in Bottom Floating Timer)
   const [timerEndTime, setTimerEndTime] = useState<number | null>(() => activeWorkout?.timerEndTime || null);
@@ -351,8 +352,8 @@ export default function App() {
       const newActiveWorkout = {
         weekNumber: selectedWeekNum,
         dayIndex: selectedDayIndex,
-        startTime: activeWorkoutState?.startTime || Date.now(),
-        elapsedSeconds: activeWorkoutState?.elapsedSeconds || 0,
+        startTime: activeWorkout?.startTime || Date.now(),
+        elapsedSeconds: activeWorkout?.elapsedSeconds || 0,
         logs: loggedSets as any,
         currentExerciseIndex: 0,
         isActive: true,
