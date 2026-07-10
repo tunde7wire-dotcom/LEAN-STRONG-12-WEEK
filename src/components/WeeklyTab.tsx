@@ -93,7 +93,13 @@ export default function WeeklyTab({
 
       <div className="space-y-3 mb-6">
         {weekPlan.days.map((day, index) => {
-          const isCompleted = settings.completedDays[`W${selectedWeekNum}-D${index}`] || false;
+          const isRequired = day.exercises.some(ex => ex.required);
+          const isCompleted = isRequired ? (settings.completedDays[`W${selectedWeekNum}-D${index}`] || false) : false;
+          let labelText = day.isTrainingDay ? "Strength" : "Active Rest";
+          if (!isRequired) {
+            labelText = day.exercises.length > 0 ? "Optional" : "Rest";
+          }
+          if (day.dayName === "Sunday") labelText = "Full Rest";
 
           return (
             <div
@@ -118,7 +124,7 @@ export default function WeeklyTab({
                       {day.dayName.substring(0, 3)}
                     </span>
                     <span className="text-[9px] font-mono text-zinc-500 uppercase font-bold">
-                      {day.isTrainingDay ? "Strength" : "Active Rest"}
+                      {labelText}
                     </span>
                   </div>
                   <h4 className={`text-sm font-bold mt-0.5 ${isCompleted ? "line-through text-zinc-500" : "text-white"}`}>
@@ -137,6 +143,23 @@ export default function WeeklyTab({
         })}
       </div>
 
+      {/* Week Progression Focus */}
+      {weekPlan.progressionFocus && weekPlan.progressionFocus.length > 0 && (
+        <div className="apple-card p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="text-sm font-bold uppercase tracking-tight text-white">Week {selectedWeekNum} Progression Focus</h3>
+          </div>
+          <ul className="space-y-2">
+            {weekPlan.progressionFocus.map((focus, i) => (
+              <li key={i} className="text-sm text-zinc-300 leading-relaxed flex items-start gap-2">
+                <span className="text-zinc-600 select-none">•</span>
+                <span>{focus}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Week Nutrition Rules Card - styled with apple-card */}
       <div className="apple-card p-6">
         <div className="flex items-center justify-between mb-4">
@@ -149,14 +172,14 @@ export default function WeeklyTab({
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div className="bg-white/5 border border-white/10 p-3 rounded-xl">
             <span className="text-[10px] font-mono text-zinc-500 uppercase block font-bold">Training Days</span>
-            <span className="text-sm font-bold text-white block mt-1">2,450 kcal</span>
-            <span className="text-[10px] text-zinc-400 block mt-0.5 font-mono">200g P / 70-85g F / 200-260g C</span>
+            <span className="text-sm font-bold text-white block mt-1">{weekPlan.nutrition.training.calories.toLocaleString()} kcal</span>
+            <span className="text-[10px] text-zinc-400 block mt-0.5 font-mono">{weekPlan.nutrition.training.protein}g P / {weekPlan.nutrition.training.fat} F / {weekPlan.nutrition.training.carbs} C</span>
           </div>
 
           <div className="bg-white/5 border border-white/10 p-3 rounded-xl">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase block font-bold">Rest Days</span>
-            <span className="text-sm font-bold text-white block mt-1">2,400 kcal</span>
-            <span className="text-[10px] text-zinc-400 block mt-0.5 font-mono">200g P / 75-90g F / 160-220g C</span>
+            <span className="text-[10px] font-mono text-zinc-500 uppercase block font-bold">Non-Training Days</span>
+            <span className="text-sm font-bold text-white block mt-1">{weekPlan.nutrition.nonTraining.calories.toLocaleString()} kcal</span>
+            <span className="text-[10px] text-zinc-400 block mt-0.5 font-mono">{weekPlan.nutrition.nonTraining.protein}g P / {weekPlan.nutrition.nonTraining.fat} F / {weekPlan.nutrition.nonTraining.carbs} C</span>
           </div>
         </div>
 

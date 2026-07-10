@@ -4,6 +4,7 @@
  */
 
 import React from "react";
+import { SEEDED_PLANS } from "../utils/planData";
 import { Check, Calendar, Lock, Flame, ShieldAlert, Award } from "lucide-react";
 import { WeekPlan, AppSettings, WeeklyCheckIn } from "../types";
 
@@ -40,11 +41,19 @@ export default function OverviewTab({
 
   // Compute stats for each week
   const getWeekStats = (wkNum: number) => {
-    // 7 days in a week
+    const weekPlan = SEEDED_PLANS[wkNum - 1];
+    let requiredDaysInWeek = 0;
+    if (weekPlan) {
+      requiredDaysInWeek = weekPlan.days.filter(d => d.exercises.some(ex => ex.required)).length;
+    } else {
+      requiredDaysInWeek = 7; // fallback
+    }
     let completedCount = 0;
     for (let d = 0; d < 7; d++) {
-      if (settings.completedDays[`W${wkNum}-D${d}`]) {
-        completedCount++;
+      if (weekPlan && weekPlan.days[d] && weekPlan.days[d].exercises.some(ex => ex.required)) {
+        if (settings.completedDays[`W${wkNum}-D${d}`]) {
+          completedCount++;
+        }
       }
     }
 
@@ -54,6 +63,7 @@ export default function OverviewTab({
     return {
       completedCount,
       hasCheckin,
+      requiredDaysInWeek
     };
   };
 
@@ -126,10 +136,10 @@ export default function OverviewTab({
                     <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden border border-white/10">
                       <div 
                         className="bg-white h-full" 
-                        style={{ width: `${(stats.completedCount / 7) * 100}%` }}
+                        style={{ width: `${stats.requiredDaysInWeek > 0 ? Math.min((stats.completedCount / stats.requiredDaysInWeek) * 100, 100) : 100}%` }}
                       />
                     </div>
-                    <span className="text-xs font-mono text-zinc-300 font-bold">{stats.completedCount}/7</span>
+                    <span className="text-xs font-mono text-zinc-300 font-bold">{stats.completedCount}/{stats.requiredDaysInWeek}</span>
                   </div>
                 </div>
 

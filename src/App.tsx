@@ -47,8 +47,7 @@ import {
   saveActiveWorkout, 
   getExerciseSwaps, 
   saveExerciseSwaps,
-  clearAllDatabase 
-} from "./utils/db";
+  clearAllDatabase, getHistoricalLogs, saveHistoricalLogs } from "./utils/db";
 
 export default function App() {
   // Navigation State
@@ -71,6 +70,7 @@ export default function App() {
   const [exerciseSwaps, setExerciseSwaps] = useState<Record<string, import("./types").CustomExerciseSwap | string>>(getExerciseSwaps);
 
   const [activeWorkout, setActiveWorkoutState] = useState<ActiveWorkoutState | null>(getActiveWorkout);
+  const [historicalLogs, setHistoricalLogs] = useState<import("./types").HistoricalWorkoutLogs>(getHistoricalLogs);
 
   // Dynamically calculate completion
   const getDerivedCompletedDays = () => {
@@ -94,11 +94,10 @@ export default function App() {
                 if (isActiveEditing && activeWorkout.logs[ex.id]) {
                   stepCount = activeWorkout.logs[ex.id].steps || 0;
                 } else {
-                  const swapData = exerciseSwaps[ex.id];
-                  const resolvedName = typeof swapData === 'string' ? swapData : (swapData?.name || ex.name);
-                  const weeklyLog = weeklyBestSetLogs[resolvedName]?.[w];
-                  if (weeklyLog) {
-                    stepCount = weeklyLog.steps || 0;
+                  const histKey = `W${w}-D${d}`;
+                  const histLogs = historicalLogs[histKey];
+                  if (histLogs && histLogs[ex.id]) {
+                    stepCount = histLogs[ex.id].steps || 0;
                   }
                 }
                 
@@ -228,54 +227,55 @@ export default function App() {
     const newBestSetLogs = { ...bestSetLogs };
     const newWeeklyBestSetLogs = { ...weeklyBestSetLogs };
 
+    const dayPlan = SEEDED_PLANS[selectedWeekNum - 1].days[selectedDayIndex];
+
     // Commit logged sets to our Best Set History
     Object.entries(loggedSets).forEach(([exId, log]) => {
-      // Find the workout name (either original or swapped)
-      const originalEx = SEEDED_PLANS[selectedWeekNum - 1].days[selectedDayIndex].exercises.find((e) => e.id === exId);
+      const originalEx = dayPlan.exercises.find((e) => e.id === exId);
       if (originalEx) {
         const swapData = exerciseSwaps[exId];
         const resolvedName = typeof swapData === 'string' ? swapData : (swapData?.name || originalEx.name);
         const resolvedTrackingType = typeof swapData === 'object' ? swapData.trackingType : originalEx.trackingType;
         const resolvedProgressMode = typeof swapData === 'object' ? swapData.progressMode : originalEx.progressMode;
+        const canonicalId = typeof swapData === 'object' ? swapData.canonicalId : originalEx.canonicalId;
+
+        const progressKey = canonicalId || resolvedName;
         
         if (resolvedProgressMode === 'weekly_best') {
-          // Helper to get score
           const getScore = (l: any) => {
             if (!l) return -1;
             if (resolvedTrackingType === 'duration') return l.duration || 0;
             if (resolvedTrackingType === 'steps') return l.steps || 0;
             if (resolvedTrackingType === 'reps_only') return l.reps || 0;
             if (resolvedTrackingType === 'assistance_reps') return (l.assistance ? (1000 - l.assistance) : l.reps) || 0;
-            return (l.weight && l.weight > 0) ? (l.weight * 1000 + l.reps) : (l.reps || 0); // rough load_reps score
+            return (l.weight && l.weight > 0) ? (l.weight * 1000 + l.reps) : (l.reps || 0);
           };
 
           const logScore = getScore(log);
           
-          // Update all-time best
-          const prev = bestSetLogs[resolvedName];
+          const prev = bestSetLogs[progressKey];
           if (!prev || logScore > getScore(prev)) {
-            newBestSetLogs[resolvedName] = {
-              weight: log.weight,
-              reps: log.reps,
+            newBestSetLogs[progressKey] = {
+              weight: log.weight || 0,
+              reps: log.reps || 0,
               duration: log.duration,
               steps: log.steps,
               assistance: log.assistance,
               date: todayStr
             };
           }
-
-          // Update weekly best
-          if (!newWeeklyBestSetLogs[resolvedName]) {
-            newWeeklyBestSetLogs[resolvedName] = {};
+          
+          if (!newWeeklyBestSetLogs[progressKey]) {
+            newWeeklyBestSetLogs[progressKey] = {};
           }
-          const prevWeekly = newWeeklyBestSetLogs[resolvedName][selectedWeekNum];
+          const prevWeekly = newWeeklyBestSetLogs[progressKey][selectedWeekNum];
           if (!prevWeekly || logScore > getScore(prevWeekly)) {
-            newWeeklyBestSetLogs[resolvedName][selectedWeekNum] = {
+            newWeeklyBestSetLogs[progressKey][selectedWeekNum] = {
               weekNumber: selectedWeekNum,
               exerciseId: exId,
-              exerciseName: resolvedName,
-              weight: log.weight,
-              reps: log.reps,
+              exerciseName: progressKey,
+              weight: log.weight || 0,
+              reps: log.reps || 0,
               duration: log.duration,
               steps: log.steps,
               assistance: log.assistance,
@@ -286,47 +286,72 @@ export default function App() {
       }
     });
 
-    // Save logs
     setBestSetLogs(newBestSetLogs);
     saveBestSetLogs(newBestSetLogs);
-
     setWeeklyBestSetLogs(newWeeklyBestSetLogs);
     saveWeeklyBestSetLogs(newWeeklyBestSetLogs);
 
-    // Save completed day status
-    const dayPlan = SEEDED_PLANS[selectedWeekNum - 1].days[selectedDayIndex];
     let isDayComplete = true;
     let unmetStepTarget = false;
-
     let unmetDurationTarget = false;
-    if (!dayPlan.isTrainingDay) {
-      // For active recovery, calculate completion based on logs
-      dayPlan.exercises.forEach(ex => {
-        if (ex.required) {
-          const log = loggedSets[ex.id];
-          if (!log) {
+    let unmetDurationMsg = "";
+    
+    // Always validate required fields against entered logs
+    dayPlan.exercises.forEach(ex => {
+      if (ex.required) {
+        const log = loggedSets[ex.id];
+        if (!log) {
+          isDayComplete = false;
+        } else {
+          if (ex.minimumSteps && (log.steps || 0) < ex.minimumSteps) {
             isDayComplete = false;
-          } else {
-            if (ex.minimumSteps && (log.steps || 0) < ex.minimumSteps) {
-              isDayComplete = false;
-              unmetStepTarget = true;
-            }
-            if (ex.name === "Bike Zone 2" && (log.duration || 0) < 25) {
-              isDayComplete = false;
-              unmetDurationTarget = true;
-            }
+            unmetStepTarget = true;
+          }
+          if (ex.minimumDuration && (log.duration || 0) < ex.minimumDuration) {
+            isDayComplete = false;
+            unmetDurationTarget = true;
+            unmetDurationMsg = `Session saved. Complete at least ${ex.minimumDuration} minutes of ${ex.name} to finish this session.`;
           }
         }
-      });
+      }
+    });
+
+    const isRequiredDay = dayPlan.exercises.some(ex => ex.required);
+
+    // Persist all valid entries into HistoricalLogs
+    const dayKey = `W${selectedWeekNum}-D${selectedDayIndex}`;
+    const newHistoricalLogs = { ...historicalLogs };
+    const validLogsForDay: Record<string, any> = { ...(newHistoricalLogs[dayKey] || {}) };
+    
+    Object.entries(loggedSets).forEach(([exId, log]) => {
+      if (
+        (log.weight !== undefined && !isNaN(log.weight)) ||
+        (log.reps !== undefined && !isNaN(log.reps)) ||
+        (log.duration !== undefined && !isNaN(log.duration)) ||
+        (log.steps !== undefined && !isNaN(log.steps)) ||
+        (log.assistance !== undefined && !isNaN(log.assistance)) ||
+        log.completed !== undefined
+      ) {
+        validLogsForDay[exId] = { ...validLogsForDay[exId], ...log };
+      }
+    });
+
+    if (Object.keys(validLogsForDay).length > 0) {
+      newHistoricalLogs[dayKey] = validLogsForDay;
+      setHistoricalLogs(newHistoricalLogs);
+      saveHistoricalLogs(newHistoricalLogs);
     }
 
     const updatedCompletedDays = { ...settings.completedDays };
-    if (isDayComplete) {
-      updatedCompletedDays[`W${selectedWeekNum}-D${selectedDayIndex}`] = true;
-    } else {
-      delete updatedCompletedDays[`W${selectedWeekNum}-D${selectedDayIndex}`];
+    // Only consider the day "completed" for required days
+    if (isRequiredDay) {
+      if (isDayComplete) {
+        updatedCompletedDays[dayKey] = true;
+      } else {
+        delete updatedCompletedDays[dayKey];
+      }
     }
-
+    
     const updatedSettings = {
       ...settings,
       completedDays: updatedCompletedDays
@@ -334,51 +359,24 @@ export default function App() {
     setSettings(updatedSettings);
     saveAppSettings(updatedSettings);
 
-    // Only clear if the day is complete, or if it's training day (where we just mark complete)? 
-    // Wait, if unmetStepTarget, do we clear the active workout? 
-    // The prompt says:
-    // If the user taps the completion action while the required step threshold is unmet:
-    // - save the entered data
-    // - keep the overall day incomplete
-    // - show a small explanation such as: “Step target not yet met.”
-    // - do not add a "Complete anyway" override.
-    
-    // We already save the bestSetLogs which acts as the entered data.
-    // BUT what about ActiveWorkoutState? If we clear it, the user will lose uncommitted data if they haven't finished? 
-    // But they just clicked complete. Let's just save the logs to ActiveWorkoutState so it's not lost.
-    
-    if (!isDayComplete) {
-      // Just save active workout so data isn't lost
-      const newActiveWorkout = {
-        weekNumber: selectedWeekNum,
-        dayIndex: selectedDayIndex,
-        startTime: activeWorkout?.startTime || Date.now(),
-        elapsedSeconds: activeWorkout?.elapsedSeconds || 0,
-        logs: loggedSets as any,
-        currentExerciseIndex: 0,
-        isActive: true,
-        timerEndTime: timerEndTime,
-        timerDurationSeconds: 0
-      };
-      setActiveWorkoutState(newActiveWorkout);
-      saveActiveWorkout(newActiveWorkout);
-      
+    setActiveWorkoutState(null);
+    saveActiveWorkout(null);
+    setTimerEndTime(null);
+
+    if (isRequiredDay && !isDayComplete) {
       if (unmetDurationTarget) {
-        alert("Session saved. Complete at least 25 minutes of Bike Zone 2 to finish this session.");
+        alert(unmetDurationMsg);
       } else if (unmetStepTarget) {
         alert("Session saved. Step target not yet met.");
       } else {
         alert("Session saved. Some required activities are incomplete.");
       }
-    } else {
-      setActiveWorkoutState(null);
-      saveActiveWorkout(null);
-      setTimerEndTime(null);
+    } else if (isRequiredDay && isDayComplete) {
       alert("Workout successfully completed! Excellent progression effort. Rest timer cleared.");
+    } else {
+      alert("Optional session saved.");
     }
 
-    
-    // Redirect back to Weekly Planner
     setActiveTab("overview");
   };
 
@@ -538,6 +536,7 @@ export default function App() {
             activeWorkout={activeWorkout}
             previousBestSets={bestSetLogs}
             swaps={exerciseSwaps}
+            historicalLogs={historicalLogs}
             onSaveActiveWorkout={handleSaveActiveWorkoutState}
             onCompleteWorkout={handleCompleteActiveWorkout}
             onTriggerRestTimer={handleTriggerRestTimer}

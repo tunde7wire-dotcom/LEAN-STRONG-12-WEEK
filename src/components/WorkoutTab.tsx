@@ -17,6 +17,7 @@ interface WorkoutTabProps {
   activeWorkout: ActiveWorkoutState | null;
   previousBestSets: Record<string, BestSetLog>; // exerciseName -> BestSetLog
   swaps: Record<string, import("../types").CustomExerciseSwap | string>;
+  historicalLogs: import("../types").HistoricalWorkoutLogs;
   onSaveActiveWorkout: (state: ActiveWorkoutState | null) => void;
   onCompleteWorkout: (logs: Record<string, { weight?: number; reps?: number; duration?: number; steps?: number; assistance?: number; completed?: boolean }>) => void;
   onTriggerRestTimer: () => void;
@@ -27,6 +28,23 @@ interface WorkoutTabProps {
 
 // Preset Swaps for high-quality workouts
 const PRESET_SWAPS: Record<string, {name: string, trackingType: import("../types").TrackingType, progressMode: import("../types").ProgressMode}[]> = {
+  "Stability-Ball Hamstring Curl": [
+    {name: "Standing Single-Leg Cable Curl with ankle cuff", trackingType: "load_reps", progressMode: "weekly_best"}
+  ],
+  "Smith Standing Calf Raise": [
+    {name: "Single-Leg Dumbbell Calf Raise", trackingType: "load_reps", progressMode: "weekly_best"}
+  ],
+  "Cable or Chest-Supported Row": [
+    {name: "Selectorized Machine Row", trackingType: "load_reps", progressMode: "weekly_best"}
+  ],
+  "One-Arm Cable or Machine Row": [
+    {name: "One-Arm Selectorized Machine Row", trackingType: "load_reps", progressMode: "weekly_best"},
+    {name: "Bilateral Selectorized Machine Row", trackingType: "load_reps", progressMode: "weekly_best"}
+  ],
+  "Standing Cable Fly": [
+    {name: "Cable Press", trackingType: "load_reps", progressMode: "weekly_best"}
+  ],
+
   "Smith/Goblet Squat": [
     {name: "Smith Squat (Heavy)", trackingType: "load_reps", progressMode: "weekly_best"}, 
     {name: "Goblet Squat", trackingType: "load_reps", progressMode: "weekly_best"}, 
@@ -147,6 +165,7 @@ export default function WorkoutTab({
   activeWorkout,
   previousBestSets,
   swaps,
+  historicalLogs,
   onSaveActiveWorkout,
   onCompleteWorkout,
   onTriggerRestTimer,
@@ -171,6 +190,24 @@ export default function WorkoutTab({
       });
       return restored;
     }
+    
+    // Otherwise, check if there are historical logs for this day
+    const histKey = `W${selectedWeekNum}-D${dayIndex}`;
+    if (historicalLogs && historicalLogs[histKey]) {
+      const restored: Record<string, { weight?: string; reps?: string; duration?: string; steps?: string; assistance?: string; completed?: boolean }> = {};
+      Object.entries(historicalLogs[histKey]).forEach(([exId, log]: [string, any]) => {
+        restored[exId] = { 
+          weight: log.weight !== undefined ? log.weight.toString() : "", 
+          reps: log.reps !== undefined ? log.reps.toString() : "",
+          duration: log.duration !== undefined ? log.duration.toString() : "",
+          steps: log.steps !== undefined ? log.steps.toString() : "",
+          assistance: log.assistance !== undefined ? log.assistance.toString() : "",
+          completed: log.completed
+        };
+      });
+      return restored;
+    }
+
     return {};
   });
 
@@ -339,12 +376,13 @@ export default function WorkoutTab({
           const swapData = swaps[ex.id];
   const isSwapped = !!swapData;
   const currentName = typeof swapData === 'string' ? swapData : (swapData?.name || ex.name);
+  const canonicalId = typeof swapData === 'object' ? swapData.canonicalId : ex.canonicalId;
   const resolvedTrackingType = typeof swapData === 'object' ? swapData.trackingType : ex.trackingType;
   const resolvedProgressMode = typeof swapData === 'object' ? swapData.progressMode : ex.progressMode;
           
 
           // Lookup previous best set for progression comparison
-          const prevBest = previousBestSets[currentName];
+          const prevBest = previousBestSets[canonicalId || currentName];
 
           // Set inputs
           const weightVal = localLogs[ex.id]?.weight || "";

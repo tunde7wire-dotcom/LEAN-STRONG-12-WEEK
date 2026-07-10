@@ -21,6 +21,10 @@ export interface Exercise {
   progressMode: ProgressMode;
   minimumSteps?: number;
   required?: boolean;
+  minimumDuration?: number;
+  canonicalId?: string;
+  format?: string;
+  rest?: string;
 }
 
 export interface DayPlan {
@@ -30,6 +34,10 @@ export interface DayPlan {
   exercises: Exercise[];
   bikeFinisher?: string;
   finisherSupportingLabel?: string;
+  timeBox?: string;
+  warmUp?: string[];
+  sessionGuidance?: string[];
+  supersetInstructions?: string[];
 }
 
 export interface WeekPlan {
@@ -51,6 +59,7 @@ export interface WeekPlan {
     tips: string[];
   };
   days: DayPlan[];
+  progressionFocus?: string[];
 }
 
 export interface BestSetLog {
@@ -114,6 +123,7 @@ export interface ActiveWorkoutState {
 }
 
 export interface CustomExerciseSwap {
+  canonicalId?: string;
   name: string;
   trackingType: TrackingType;
   progressMode: ProgressMode;
@@ -128,3 +138,5 @@ export interface StoredPDF {
   uploadedAt: string;
   dataUrl: string; // base64 representation of the PDF for rendering and saving
 }
+
+export type HistoricalWorkoutLogs = Record<string, Record<string, { weight?: number; reps?: number; duration?: number; steps?: number; assistance?: number; completed?: boolean }>>;

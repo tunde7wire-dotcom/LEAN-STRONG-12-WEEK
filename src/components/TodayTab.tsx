@@ -119,6 +119,7 @@ export default function TodayTab({
   const checklist = fullChecklist.filter(item => {
     if (item.id === "weighin" && !isWeighInDay) return false;
     if (item.id === "waist" && !isWaistDay) return false;
+    if (item.id === "workout" && !dayPlan.exercises.some(ex => ex.required)) return false;
     return true;
   });
 

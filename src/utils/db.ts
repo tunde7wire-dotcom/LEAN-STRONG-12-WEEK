@@ -128,6 +128,7 @@ const KEY_CHECKINS = "lean_strong_checkins";
 const KEY_SETTINGS = "lean_strong_settings";
 const KEY_ACTIVE_WORKOUT = "lean_strong_active_workout";
 const KEY_EXERCISE_SWAPS = "lean_strong_exercise_swaps";
+const KEY_HISTORICAL_LOGS = "lean_strong_historical_logs";
 
 // Helper to load/save from local storage
 export function loadFromLocalStorage<T>(key: string, defaultValue: T): T {
@@ -151,12 +152,120 @@ export function saveToLocalStorage<T>(key: string, value: T): void {
 }
 
 // Specific LocalStorage getters & setters
+
+
+
+
+
+
+
+const CANONICAL_MAPPINGS: Record<string, string> = {
+  "Smith or Goblet Squat": "smith-squat",
+  "Smith Squat (Heavy)": "smith-squat",
+  "Smith Squat": "smith-squat",
+
+  "DB Bench Press": "flat-db-bench-press",
+  "Flat DB Bench Press": "flat-db-bench-press",
+
+  "Cable Row": "horizontal-row",
+  "Cable or Chest-Supported Row": "horizontal-row",
+  "Chest-Supported DB Row": "horizontal-row",
+  "Selectorized Machine Row": "horizontal-row",
+
+  "DB Lateral Raise": "lateral-raise",
+  "Cable or DB Lateral Raise": "lateral-raise",
+  "Cable Lateral Raise": "lateral-raise",
+
+  "Plank": "plank",
+  "RKC Plank": "plank",
+
+  "Smith/Heavy DB RDL": "smith-rdl",
+  "Smith RDL (Heavy)": "smith-rdl",
+  "Smith Romanian Deadlift": "smith-rdl",
+
+  "DB Shoulder Press": "db-shoulder-press",
+  
+  "Lat Pulldown": "lat-pulldown",
+  
+  "Cable Crunch": "cable-crunch",
+  
+  "Bulgarian Split Squat": "bulgarian-split-squat",
+
+  "Incline DB Bench Press": "incline-db-bench-press",
+
+  "1-Arm Cable Row": "one-arm-row",
+  "One-Arm Cable or Machine Row": "one-arm-row",
+  "One-Arm Selectorized Machine Row": "one-arm-row",
+
+  "Cable Bicep Curl": "cable-curl",
+  "Cable Curl": "cable-curl",
+
+  "Rope Tricep Pressdown": "rope-pressdown",
+  "Rope Pressdown": "rope-pressdown"
+};
+
+const getScore = (l: any) => {
+  if (!l) return -1;
+  if (l.weight && l.weight > 0) return (l.weight * 1000 + (l.reps || 0));
+  if (l.duration) return l.duration;
+  if (l.steps) return l.steps;
+  if (l.assistance) return 1000 - l.assistance;
+  return l.reps || 0;
+};
+
+const applyMigrations = <T extends object>(data: Record<string, T>): Record<string, T> => {
+  let migrated = false;
+  const newData = { ...data };
+  
+  for (const [oldName, canonicalKey] of Object.entries(CANONICAL_MAPPINGS)) {
+    if (newData[oldName]) {
+      const existing = newData[canonicalKey];
+      const newRec = newData[oldName];
+      
+      // Merge weekly best logic
+      if (typeof existing === 'object' && existing !== null && !('weight' in existing) && !('duration' in existing) && !('date' in existing)) {
+        // It's WeeklyBestSetLogs structure
+        newData[canonicalKey] = { ...existing } as any;
+        for (const [wk, entry] of Object.entries(newRec as any)) {
+          const exWk = (newData[canonicalKey] as any)[wk];
+          if (!exWk || getScore(entry) > getScore(exWk)) {
+            (newData[canonicalKey] as any)[wk] = { ...(entry as any), exerciseName: canonicalKey };
+          }
+        }
+      } else {
+        // BestSetLog structure
+        if (!existing || getScore(newRec) > getScore(existing)) {
+          newData[canonicalKey] = { ...(newRec as any) };
+        }
+      }
+
+      delete newData[oldName];
+      migrated = true;
+    }
+  }
+
+  // Target-adherence activities must remain excluded
+  if (newData["Zone 2 Indoor Trainer Ride"]) {
+    delete newData["Zone 2 Indoor Trainer Ride"];
+    migrated = true;
+  }
+  if (newData["Zwift Ride"]) {
+    delete newData["Zwift Ride"];
+    migrated = true;
+  }
+
+  return migrated ? newData : data;
+};
+
 export const getBestSetLogs = (): Record<string, BestSetLog> => {
-  const data = loadFromLocalStorage<Record<string, BestSetLog>>(KEY_BEST_SETS, {});
+  let data = loadFromLocalStorage<Record<string, BestSetLog>>(KEY_BEST_SETS, {});
   if (data["Bike Zone 2"]) {
     delete data["Bike Zone 2"];
     saveToLocalStorage(KEY_BEST_SETS, data);
   }
+  const migrated = applyMigrations(data);
+  if (migrated !== data) saveToLocalStorage(KEY_BEST_SETS, migrated);
+  data = migrated;
   return data;
 };
 
@@ -164,11 +273,14 @@ export const saveBestSetLogs = (logs: Record<string, BestSetLog>) =>
   saveToLocalStorage(KEY_BEST_SETS, logs);
 
 export const getWeeklyBestSetLogs = (): import("../types").WeeklyBestSetLogs => {
-  const data = loadFromLocalStorage<import("../types").WeeklyBestSetLogs>(KEY_WEEKLY_BEST_SETS, {});
+  let data = loadFromLocalStorage<import("../types").WeeklyBestSetLogs>(KEY_WEEKLY_BEST_SETS, {});
   if (data["Bike Zone 2"]) {
     delete data["Bike Zone 2"];
     saveToLocalStorage(KEY_WEEKLY_BEST_SETS, data);
   }
+  const migrated = applyMigrations(data);
+  if (migrated !== data) saveToLocalStorage(KEY_WEEKLY_BEST_SETS, migrated);
+  data = migrated;
   return data;
 };
 
@@ -213,6 +325,11 @@ export const getExerciseSwaps = (): Record<string, import("../types").CustomExer
 export const saveExerciseSwaps = (swaps: Record<string, import("../types").CustomExerciseSwap | string>) =>
   saveToLocalStorage(KEY_EXERCISE_SWAPS, swaps);
 
+export const getHistoricalLogs = (): import("../types").HistoricalWorkoutLogs =>
+  loadFromLocalStorage<import("../types").HistoricalWorkoutLogs>(KEY_HISTORICAL_LOGS, {});
+export const saveHistoricalLogs = (logs: import("../types").HistoricalWorkoutLogs) =>
+  saveToLocalStorage(KEY_HISTORICAL_LOGS, logs);
+
 // Reset database to default
 export async function clearAllDatabase(): Promise<void> {
   if (typeof window !== "undefined") {
@@ -223,6 +340,7 @@ export async function clearAllDatabase(): Promise<void> {
     window.localStorage.removeItem(KEY_SETTINGS);
     window.localStorage.removeItem(KEY_ACTIVE_WORKOUT);
     window.localStorage.removeItem(KEY_EXERCISE_SWAPS);
+    window.localStorage.removeItem(KEY_HISTORICAL_LOGS);
 
     // clear IndexedDB pdfs store
     try {
