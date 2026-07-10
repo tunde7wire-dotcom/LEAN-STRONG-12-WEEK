@@ -75,7 +75,6 @@ export default function App() {
   // Dynamically calculate completion
   const getDerivedCompletedDays = () => {
     const derived = { ...settings.completedDays };
-    // For each completed day, check if it's an active recovery day with unmet steps
     Object.keys(derived).forEach(key => {
       if (derived[key]) {
         const match = key.match(/W(\d+)-D(\d+)/);
@@ -83,25 +82,30 @@ export default function App() {
           const w = parseInt(match[1], 10);
           const d = parseInt(match[2], 10);
           const plan = SEEDED_PLANS[w - 1]?.days[d];
-          if (plan && !plan.isTrainingDay) {
+          if (plan) {
             let complete = true;
             plan.exercises.forEach(ex => {
-              if (ex.required && ex.minimumSteps) {
-                // Check if the user is currently editing this workout
+              if (ex.required && (ex.minimumSteps || ex.minimumDuration)) {
                 const isActiveEditing = activeWorkout && activeWorkout.weekNumber === w && activeWorkout.dayIndex === d;
                 let stepCount = 0;
+                let durationCount = 0;
                 
                 if (isActiveEditing && activeWorkout.logs[ex.id]) {
                   stepCount = activeWorkout.logs[ex.id].steps || 0;
+                  durationCount = activeWorkout.logs[ex.id].duration || 0;
                 } else {
                   const histKey = `W${w}-D${d}`;
                   const histLogs = historicalLogs[histKey];
                   if (histLogs && histLogs[ex.id]) {
                     stepCount = histLogs[ex.id].steps || 0;
+                    durationCount = histLogs[ex.id].duration || 0;
                   }
                 }
                 
-                if (stepCount < ex.minimumSteps) {
+                if (ex.minimumSteps && stepCount < ex.minimumSteps) {
+                  complete = false;
+                }
+                if (ex.minimumDuration && durationCount < ex.minimumDuration) {
                   complete = false;
                 }
               }
@@ -127,6 +131,27 @@ export default function App() {
 
   const [planStatus, setPlanStatus] = useState<'pre-start' | 'active' | 'completed'>('active');
   const [elapsedDays, setElapsedDays] = useState(0);
+
+  // Targeted migration for Week 2 Wednesday (W2-D2)
+  useEffect(() => {
+    let changed = false;
+    const newSettings = { ...settings };
+    
+    // Check W2-D2
+    const w2d2Logs = historicalLogs["W2-D2"];
+    const w2d2RideDuration = w2d2Logs?.["w2-d3-ex1"]?.duration || 0;
+    
+    if (settings.completedDays["W2-D2"] && w2d2RideDuration < 20) {
+      newSettings.completedDays = { ...newSettings.completedDays };
+      delete newSettings.completedDays["W2-D2"];
+      changed = true;
+    }
+    
+    if (changed) {
+      setSettings(newSettings);
+      saveAppSettings(newSettings);
+    }
+  }, []);
 
   // Calculate and sync current plan position based on Start Date
   useEffect(() => {

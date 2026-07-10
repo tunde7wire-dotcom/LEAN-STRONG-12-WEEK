@@ -1,56 +1,53 @@
 const fs = require('fs');
 let code = fs.readFileSync('src/App.tsx', 'utf8');
 
-const targetStr = `            plan.exercises.forEach(ex => {
-              if (ex.required) {
-                // Check if the user is currently editing this workout
+const newDerived = `  const getDerivedCompletedDays = () => {
+    const derived = { ...settings.completedDays };
+    Object.keys(derived).forEach(key => {
+      if (derived[key]) {
+        const match = key.match(/W(\\d+)-D(\\d+)/);
+        if (match) {
+          const w = parseInt(match[1], 10);
+          const d = parseInt(match[2], 10);
+          const plan = SEEDED_PLANS[w - 1]?.days[d];
+          if (plan) {
+            let complete = true;
+            plan.exercises.forEach(ex => {
+              if (ex.required && (ex.minimumSteps || ex.minimumDuration)) {
                 const isActiveEditing = activeWorkout && activeWorkout.weekNumber === w && activeWorkout.dayIndex === d;
                 let stepCount = 0;
-                let hasLog = false;
-                
-                if (isActiveEditing && activeWorkout.logs[ex.id]) {
-                  hasLog = true;
-                  stepCount = activeWorkout.logs[ex.id].steps || 0;
-                } else {
-                  const swapData = exerciseSwaps[ex.id];
-                  const resolvedName = typeof swapData === 'string' ? swapData : (swapData?.name || ex.name);
-                  const weeklyLog = weeklyBestSetLogs[resolvedName]?.[w];
-                  if (weeklyLog) {
-                    hasLog = true;
-                    stepCount = weeklyLog.steps || 0;
-                  }
-                }
-                
-                if (!hasLog) {
-                  complete = false;
-                } else if (ex.minimumSteps && stepCount < ex.minimumSteps) {
-                  complete = false;
-                }
-              }
-            });`;
-
-const replaceStr = `            plan.exercises.forEach(ex => {
-              if (ex.required && ex.minimumSteps) {
-                // Check if the user is currently editing this workout
-                const isActiveEditing = activeWorkout && activeWorkout.weekNumber === w && activeWorkout.dayIndex === d;
-                let stepCount = 0;
+                let durationCount = 0;
                 
                 if (isActiveEditing && activeWorkout.logs[ex.id]) {
                   stepCount = activeWorkout.logs[ex.id].steps || 0;
+                  durationCount = activeWorkout.logs[ex.id].duration || 0;
                 } else {
-                  const swapData = exerciseSwaps[ex.id];
-                  const resolvedName = typeof swapData === 'string' ? swapData : (swapData?.name || ex.name);
-                  const weeklyLog = weeklyBestSetLogs[resolvedName]?.[w];
-                  if (weeklyLog) {
-                    stepCount = weeklyLog.steps || 0;
+                  const histKey = \`W\${w}-D\${d}\`;
+                  const histLogs = historicalLogs[histKey];
+                  if (histLogs && histLogs[ex.id]) {
+                    stepCount = histLogs[ex.id].steps || 0;
+                    durationCount = histLogs[ex.id].duration || 0;
                   }
                 }
                 
-                if (stepCount < ex.minimumSteps) {
+                if (ex.minimumSteps && stepCount < ex.minimumSteps) {
+                  complete = false;
+                }
+                if (ex.minimumDuration && durationCount < ex.minimumDuration) {
                   complete = false;
                 }
               }
-            });`;
+            });
+            if (!complete) {
+              derived[key] = false;
+            }
+          }
+        }
+      }
+    });
+    return derived;
+  };`;
 
-code = code.replace(targetStr, replaceStr);
+const regex = /  const getDerivedCompletedDays = \(\) => \{[\s\S]*?  \};\n/m;
+code = code.replace(regex, newDerived + '\n');
 fs.writeFileSync('src/App.tsx', code);

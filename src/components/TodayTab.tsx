@@ -85,7 +85,7 @@ export default function TodayTab({
     {
       id: "workout",
       title: dayPlan.exercises.length > 1 ? `Log Workout: ${dayPlan.name}` : `Active Recovery: ${dayPlan.name}`,
-      subtitle: dayPlan.isTrainingDay ? "Target strength set progression" : "Active physical recovery & walk",
+      subtitle: dayPlan.isTrainingDay ? "Target strength set progression" : (dayPlan.exercises[0]?.name === "Steps Focus Only" ? "Active physical recovery & walk" : "Complete required active recovery"),
       completed: settings.completedDays[`W${currentWeekNum}-D${currentDayIndex}`] || false,
       action: undefined, // We'll handle workout row click separately
       icon: <Dumbbell className="w-5 h-5 text-neutral-400" />

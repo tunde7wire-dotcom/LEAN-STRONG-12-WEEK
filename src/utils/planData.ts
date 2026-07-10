@@ -29,6 +29,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
     exercises: [
       {
         id: `w${weekNumber}-d1-ex1`,
+        canonicalId: "zone-2-indoor-trainer-ride",
         name: "Bike Zone 2",
         originalName: "Bike Zone 2",
         sets: "1",
@@ -378,10 +379,12 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
     exercises: [
       {
         id: `w${weekNumber}-d1-ex1`,
+        canonicalId: "zone-2-indoor-trainer-ride",
         name: "Bike Zone 2",
         originalName: "Bike Zone 2",
         sets: "1",
         reps: isDeload ? "20-25 min" : "25-35 min",
+        minimumDuration: isDeload ? 20 : 25,
         tempoCue: "Pace: sustainable and conversational",
         effortCue: "RPE 4-5. No sprints, climbs, or interval blocks.",
         required: true,
@@ -504,6 +507,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
     exercises: [
       {
         id: `w${weekNumber}-d3-ex1`,
+        canonicalId: "active-recovery-zwift-ride",
         name: "Zwift Ride",
         originalName: "Zwift Ride",
         sets: "1",
@@ -762,7 +766,7 @@ export function getPlanForWeek(weekNumber: number): WeekPlan {
   ];
 
   const finalDays = legacyDays.map((legacy, dayIndex) => {
-    const isRevised = weekNumber > 2 || (weekNumber === 2 && dayIndex >= 3);
+    const isRevised = weekNumber > 2 || (weekNumber === 2 && dayIndex >= 2);
     return isRevised ? revisedDays[dayIndex] : legacy;
   });
 
