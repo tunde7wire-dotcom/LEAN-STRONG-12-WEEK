@@ -451,25 +451,38 @@ export default function WorkoutTab({
                   </h3>
                 </div>
 
-                {/* Inline Exercise swap action */}
-                {swappingExId !== ex.id ? (
-                  <button
-                    id={`exercise-btn-swap-trigger-${ex.id}`}
-                    onClick={() => handleOpenSwap(ex)}
-                    className="text-xs text-zinc-400 hover:text-white p-1 border border-white/10 hover:border-white/20 rounded transition-colors flex items-center gap-1"
-                    title="Swap exercise"
-                  >
-                    <ArrowRightLeft className="w-3.5 h-3.5" />
-                  </button>
-                ) : (
-                  <button
-                    id={`exercise-btn-swap-cancel-${ex.id}`}
-                    onClick={() => setSwappingExId(null)}
-                    className="text-xs text-zinc-400 hover:text-white font-mono font-bold uppercase tracking-wider"
-                  >
-                    Cancel
-                  </button>
-                )}
+                {/* Action Area: View Form & Swap */}
+                <div className="flex items-center gap-2">
+                  {formGuide && (
+                    <button
+                      type="button"
+                      id={`exercise-btn-view-form-${ex.id}`}
+                      aria-label={`View form demonstration for ${currentName}`}
+                      onClick={() => handleOpenFormGuide(ex, swapData, formGuide)}
+                      className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 hover:border-emerald-500/30 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1 shrink-0"
+                    >
+                      <Play className="w-3.5 h-3.5" /> View Form
+                    </button>
+                  )}
+                  {swappingExId !== ex.id ? (
+                    <button
+                      id={`exercise-btn-swap-trigger-${ex.id}`}
+                      onClick={() => handleOpenSwap(ex)}
+                      className="text-xs text-zinc-400 hover:text-white p-1.5 border border-white/10 hover:border-white/20 rounded-lg transition-colors flex items-center gap-1 shrink-0"
+                      title="Swap exercise"
+                    >
+                      <ArrowRightLeft className="w-4 h-4" />
+                    </button>
+                  ) : (
+                    <button
+                      id={`exercise-btn-swap-cancel-${ex.id}`}
+                      onClick={() => setSwappingExId(null)}
+                      className="text-[10px] text-zinc-400 hover:text-white font-mono font-bold uppercase tracking-wider px-2 py-1.5 shrink-0"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Swapping Options Area */}
