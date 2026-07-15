@@ -548,7 +548,7 @@ export default function App() {
     setTimerEndTime(endTime);
     
     if (activeWorkout) {
-      const updated = { ...activeWorkout, timerEndTime };
+      const updated = { ...activeWorkout, timerEndTime: endTime };
       setActiveWorkoutState(updated);
       saveActiveWorkout(updated);
     }
@@ -574,7 +574,10 @@ export default function App() {
 
   const handleTriggerRestTimer = () => {
     setTimerOpen(true);
-    handleTimerStart(settings.timerDuration);
+    // Only start a new timer if one isn't currently running
+    if (timerEndTime === null) {
+      handleTimerStart(settings.timerDuration);
+    }
   };
 
   // Determine current active plan week data

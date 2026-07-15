@@ -474,6 +474,7 @@ export default function WorkoutTab({
           </p>
         </div>
         <button
+          type="button"
           id="workout-btn-trigger-timer"
           onClick={handleStartTimer}
           className="flex items-center gap-1 bg-white text-black hover:bg-neutral-200 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all uppercase tracking-wider"
@@ -748,6 +749,7 @@ export default function WorkoutTab({
                     
                     <div className="self-end pb-1 pr-1">
                       <button
+                        type="button"
                         id={`btn-trigger-timer-${ex.id}`}
                         onClick={handleStartTimer}
                         className="p-2.5 bg-white text-black hover:bg-neutral-200 rounded-xl transition-colors"
@@ -840,6 +842,7 @@ export default function WorkoutTab({
                               )}
                               
                               <button
+                                type="button"
                                 onClick={handleStartTimer}
                                 className="p-1.5 bg-white text-black hover:bg-neutral-200 rounded shrink-0 transition-colors"
                                 title="Rest timer"
