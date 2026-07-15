@@ -450,7 +450,7 @@ export default function WorkoutTab({
   const isCompletedDay = settings.completedDays[`W${selectedWeekNum}-D${dayIndex}`] || false;
 
   return (
-    <div id="workout-tracker-tab" className="max-w-md mx-auto px-4 pb-28 pt-4">
+    <div id="workout-tracker-tab" className="max-w-md mx-auto px-4 pb-32 sm:pb-28 pt-4">
       {/* Back to week header */}
       <button
         id="workout-btn-back"
@@ -549,13 +549,13 @@ export default function WorkoutTab({
             <div
               id={`exercise-card-${ex.id}`}
               key={ex.id}
-              className={`apple-card p-5 transition-all ${
+              className={`apple-card p-4 sm:p-5 transition-all ${
                 (weightVal && repsVal) || hasAnySetData ? "border-white/20 bg-white/5" : "hover:border-white/20"
               }`}
             >
               {/* Card top banner */}
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex-1">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-3">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {ex.isSuperset && (
                       <span className="bg-white text-black font-mono font-extrabold text-[8px] px-1.5 py-0.5 rounded uppercase">
@@ -566,18 +566,17 @@ export default function WorkoutTab({
                       Target: {ex.sets} Sets x {ex.reps} Reps
                     </span>
                   </div>
-                  <h3 className="text-lg font-bold text-white mt-1 leading-tight flex items-center gap-1.5">
-                    {currentName}
+                  <h3 className="text-lg font-bold text-white mt-1 leading-tight flex items-center gap-1.5 flex-wrap">
+                    <span className="min-w-0 break-words">{currentName}</span>
                     {isSwapped && (
-                      <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-wider">
+                      <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-wider whitespace-nowrap">
                         (Swapped)
                       </span>
                     )}
                   </h3>
                 </div>
-
                 {/* Action Area: View Form & Swap */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {formGuide && (
                     <button
                       type="button"
@@ -677,18 +676,18 @@ export default function WorkoutTab({
 
               {/* Double Progression / Previous best set info */}
               {resolvedProgressMode === 'weekly_best' && (
-                <div className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 flex justify-between items-center mb-4">
+                <div className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-1">
                   <span className="text-[10px] font-mono text-zinc-500 uppercase font-bold tracking-wider">Progression Double Rule</span>
                   <span className="text-xs font-mono font-bold text-zinc-300">
                     {prevBest ? (
-                      <span className="text-white">
-                        {resolvedTrackingType === 'load_reps' && `Prev Best Set: ${prevBest.weight} ${settings.units === "imperial" ? "lbs" : "kg"} x ${prevBest.reps} reps`}
-                        {resolvedTrackingType === 'duration' && `Previous Best: ${prevBest.duration} ${ex.category === 'core' ? "sec" : "min"}`}
-                        {resolvedTrackingType === 'reps_only' && `Previous Best: ${prevBest.reps} reps`}
-                        {resolvedTrackingType === 'assistance_reps' && `Previous Best: -${prevBest.assistance} ${settings.units === "imperial" ? "lbs" : "kg"} x ${prevBest.reps} reps`}
+                      <span className="text-white break-words">
+                        {resolvedTrackingType === 'load_reps' && `Prev Best: ${prevBest.weight} ${settings.units === "imperial" ? "lbs" : "kg"} x ${prevBest.reps} reps`}
+                        {resolvedTrackingType === 'duration' && `Prev Best: ${prevBest.duration} ${ex.category === 'core' ? "sec" : "min"}`}
+                        {resolvedTrackingType === 'reps_only' && `Prev Best: ${prevBest.reps} reps`}
+                        {resolvedTrackingType === 'assistance_reps' && `Prev Best: -${prevBest.assistance} ${settings.units === "imperial" ? "lbs" : "kg"} x ${prevBest.reps} reps`}
                       </span>
                     ) : (
-                      "No logged best set history"
+                      "No best set history"
                     )}
                   </span>
                 </div>
@@ -697,9 +696,9 @@ export default function WorkoutTab({
               <div className="mt-4">
                 {['target_adherence', 'none'].includes(resolvedProgressMode) || ['steps', 'completion'].includes(resolvedTrackingType) ? (
                   /* Legacy / Single Row for Cardio, Steps, Completion */
-                  <div className="flex items-center gap-3 relative">
+                  <div className="flex items-center gap-3 relative flex-wrap sm:flex-nowrap">
                     {resolvedTrackingType === 'duration' && (
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0 w-full sm:w-auto">
                           <label className="text-[10px] font-mono text-zinc-500 uppercase block mb-1 font-bold tracking-wider">
                             Duration {ex.category === 'core' ? "(Seconds)" : "(Minutes)"}
                           </label>
@@ -714,7 +713,7 @@ export default function WorkoutTab({
                       </div>
                     )}
                     {resolvedTrackingType === 'steps' && (
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0 w-full sm:w-auto">
                           <label className="text-[10px] font-mono text-zinc-500 uppercase block mb-1 font-bold tracking-wider">
                             Actual Steps
                           </label>
@@ -776,101 +775,138 @@ export default function WorkoutTab({
                         
                         return (
                           <div key={setIdx} className="p-3 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-mono text-zinc-500 font-bold uppercase w-12 shrink-0">
-                                Set {setIdx + 1}
-                              </span>
-                              
+                            <div className="flex flex-col sm:flex-row sm:items-end gap-2">
+                              <div className="flex items-center justify-between sm:justify-start gap-2 mb-1 sm:mb-0">
+                                <span className="text-[10px] font-mono text-zinc-500 font-bold uppercase shrink-0 min-w-[3rem]">
+                                  Set {setIdx + 1}
+                                </span>
+                                
+                                {/* Timer on mobile, next to Set label */}
+                                <div className="flex sm:hidden shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={handleStartTimer}
+                                    className="p-[8px] bg-white text-black hover:bg-neutral-200 rounded-lg transition-colors flex items-center justify-center min-w-[36px] min-h-[36px]"
+                                    title="Rest timer"
+                                  >
+                                    <Timer className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                                                            
                               {resolvedTrackingType === 'load_reps' && (
-                                <>
-                                  <input
-                                    type="number"
-                                    step="any"
-                                    placeholder="Weight"
-                                    value={setLog.weight || ""}
-                                    onChange={(e) => handleSetInputChange(ex.id, setIdx, "weight", e.target.value)}
-                                    className="flex-1 text-sm py-1.5 px-2 focus:border-white text-white rounded bg-white/5 border border-white/10"
-                                  />
-                                  <input
-                                    type="number"
-                                    placeholder="Reps"
-                                    value={setLog.reps || ""}
-                                    onChange={(e) => handleSetInputChange(ex.id, setIdx, "reps", e.target.value)}
-                                    className="flex-1 text-sm py-1.5 px-2 focus:border-white text-white rounded bg-white/5 border border-white/10"
-                                  />
-                                </>
+                                <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,0.65fr)] gap-2 flex-1 w-full sm:w-auto">
+                                  <div className="min-w-0">
+                                    <label className="text-[10px] font-mono text-zinc-500 uppercase block mb-1 font-bold tracking-wider">Weight {settings.units === "imperial" ? "(lb)" : "(kg)"}</label>
+                                    <input
+                                      type="number"
+                                      step="any"
+                                      placeholder="Weight"
+                                      value={setLog.weight || ""}
+                                      onChange={(e) => handleSetInputChange(ex.id, setIdx, "weight", e.target.value)}
+                                      className="w-full text-sm py-1.5 px-2 focus:border-white text-white rounded bg-white/5 border border-white/10"
+                                    />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <label className="text-[10px] font-mono text-zinc-500 uppercase block mb-1 font-bold tracking-wider">Reps</label>
+                                    <input
+                                      type="number"
+                                      placeholder="Reps"
+                                      value={setLog.reps || ""}
+                                      onChange={(e) => handleSetInputChange(ex.id, setIdx, "reps", e.target.value)}
+                                      className="w-full text-sm py-1.5 px-2 focus:border-white text-white rounded bg-white/5 border border-white/10"
+                                    />
+                                  </div>
+                                </div>
                               )}
-                              
+                                                            
                               {resolvedTrackingType === 'reps_only' && (
-                                <input
-                                  type="number"
-                                  placeholder="Reps"
-                                  value={setLog.reps || ""}
-                                  onChange={(e) => handleSetInputChange(ex.id, setIdx, "reps", e.target.value)}
-                                  className="flex-1 text-sm py-1.5 px-2 focus:border-white text-white rounded bg-white/5 border border-white/10"
-                                />
-                              )}
-                              
-                              {resolvedTrackingType === 'assistance_reps' && (
-                                <>
-                                  <input
-                                    type="number"
-                                    step="any"
-                                    placeholder="Assist"
-                                    value={setLog.assistance || ""}
-                                    onChange={(e) => handleSetInputChange(ex.id, setIdx, "assistance", e.target.value)}
-                                    className="flex-1 text-sm py-1.5 px-2 focus:border-white text-white rounded bg-white/5 border border-white/10"
-                                  />
+                                <div className="flex-1 min-w-0 w-full sm:w-auto">
+                                  <label className="text-[10px] font-mono text-zinc-500 uppercase block mb-1 font-bold tracking-wider">Reps</label>
                                   <input
                                     type="number"
                                     placeholder="Reps"
                                     value={setLog.reps || ""}
                                     onChange={(e) => handleSetInputChange(ex.id, setIdx, "reps", e.target.value)}
-                                    className="flex-1 text-sm py-1.5 px-2 focus:border-white text-white rounded bg-white/5 border border-white/10"
+                                    className="w-full text-sm py-1.5 px-2 focus:border-white text-white rounded bg-white/5 border border-white/10"
                                   />
-                                </>
+                                </div>
                               )}
-                              
+                                                            
+                              {resolvedTrackingType === 'assistance_reps' && (
+                                <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,0.65fr)] gap-2 flex-1 w-full sm:w-auto">
+                                  <div className="min-w-0">
+                                    <label className="text-[10px] font-mono text-zinc-500 uppercase block mb-1 font-bold tracking-wider">Assist</label>
+                                    <input
+                                      type="number"
+                                      step="any"
+                                      placeholder="Assist"
+                                      value={setLog.assistance || ""}
+                                      onChange={(e) => handleSetInputChange(ex.id, setIdx, "assistance", e.target.value)}
+                                      className="w-full text-sm py-1.5 px-2 focus:border-white text-white rounded bg-white/5 border border-white/10"
+                                    />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <label className="text-[10px] font-mono text-zinc-500 uppercase block mb-1 font-bold tracking-wider">Reps</label>
+                                    <input
+                                      type="number"
+                                      placeholder="Reps"
+                                      value={setLog.reps || ""}
+                                      onChange={(e) => handleSetInputChange(ex.id, setIdx, "reps", e.target.value)}
+                                      className="w-full text-sm py-1.5 px-2 focus:border-white text-white rounded bg-white/5 border border-white/10"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                                                            
                               {resolvedTrackingType === 'duration' && (
-                                <input
-                                  type="number"
-                                  placeholder={ex.category === 'core' ? "Secs" : "Mins"}
-                                  value={setLog.duration || ""}
-                                  onChange={(e) => handleSetInputChange(ex.id, setIdx, "duration", e.target.value)}
-                                  className="flex-1 text-sm py-1.5 px-2 focus:border-white text-white rounded bg-white/5 border border-white/10"
-                                />
+                                <div className="flex-1 min-w-0 w-full sm:w-auto">
+                                  <label className="text-[10px] font-mono text-zinc-500 uppercase block mb-1 font-bold tracking-wider">
+                                    {ex.category === 'core' ? "Seconds" : "Minutes"}
+                                  </label>
+                                  <input
+                                    type="number"
+                                    placeholder={ex.category === 'core' ? "Secs" : "Mins"}
+                                    value={setLog.duration || ""}
+                                    onChange={(e) => handleSetInputChange(ex.id, setIdx, "duration", e.target.value)}
+                                    className="w-full text-sm py-1.5 px-2 focus:border-white text-white rounded bg-white/5 border border-white/10"
+                                  />
+                                </div>
                               )}
-                              
-                              <button
-                                type="button"
-                                onClick={handleStartTimer}
-                                className="p-1.5 bg-white text-black hover:bg-neutral-200 rounded shrink-0 transition-colors"
-                                title="Rest timer"
-                              >
-                                <Timer className="w-3.5 h-3.5" />
-                              </button>
+                                                            
+                              {/* Timer on desktop, at the end */}
+                              <div className="hidden sm:flex shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={handleStartTimer}
+                                  className="p-[10px] bg-white text-black hover:bg-neutral-200 rounded-lg transition-colors flex items-center justify-center min-w-[40px] min-h-[40px]"
+                                  title="Rest timer"
+                                >
+                                  <Timer className="w-4 h-4" />
+                                </button>
+                              </div>
                             </div>
-                            
+                                                        
                             {/* Effort Controls */}
-                            <div className="flex gap-1.5 w-full">
+                            <div className="grid grid-cols-3 gap-1.5 w-full mt-1">
                               <button
                                 onClick={() => handleSetInputChange(ex.id, setIdx, "effort", setLog.effort === "easy" ? "" : "easy")}
                                 aria-pressed={setLog.effort === "easy"}
-                                className={`flex-1 text-[10px] font-mono font-bold py-1.5 rounded uppercase tracking-wider transition-all ${setLog.effort === "easy" ? "bg-emerald-500 text-black" : "bg-white/5 text-emerald-500 border border-emerald-500/30"}`}
+                                className={`min-w-0 text-[10px] font-mono font-bold py-2 rounded uppercase tracking-wider transition-all break-words leading-tight ${setLog.effort === "easy" ? "bg-emerald-500 text-black" : "bg-white/5 text-emerald-500 border border-emerald-500/30"}`}
                               >
                                 Easy
                               </button>
                               <button
                                 onClick={() => handleSetInputChange(ex.id, setIdx, "effort", setLog.effort === "on_target" ? "" : "on_target")}
                                 aria-pressed={setLog.effort === "on_target"}
-                                className={`flex-1 text-[10px] font-mono font-bold py-1.5 rounded uppercase tracking-wider transition-all ${setLog.effort === "on_target" ? "bg-yellow-500 text-black" : "bg-white/5 text-yellow-500 border border-yellow-500/30"}`}
+                                className={`min-w-0 text-[10px] font-mono font-bold py-2 px-0.5 sm:px-1 rounded uppercase tracking-wider transition-all break-words leading-tight ${setLog.effort === "on_target" ? "bg-yellow-500 text-black" : "bg-white/5 text-yellow-500 border border-yellow-500/30"}`}
                               >
                                 On Target
                               </button>
                               <button
                                 onClick={() => handleSetInputChange(ex.id, setIdx, "effort", setLog.effort === "very_hard" ? "" : "very_hard")}
                                 aria-pressed={setLog.effort === "very_hard"}
-                                className={`flex-1 text-[10px] font-mono font-bold py-1.5 rounded uppercase tracking-wider transition-all ${setLog.effort === "very_hard" ? "bg-red-500 text-white" : "bg-white/5 text-red-500 border border-red-500/30"}`}
+                                className={`min-w-0 text-[10px] font-mono font-bold py-2 rounded uppercase tracking-wider transition-all break-words leading-tight ${setLog.effort === "very_hard" ? "bg-red-500 text-white" : "bg-white/5 text-red-500 border border-red-500/30"}`}
                               >
                                 Very Hard
                               </button>
