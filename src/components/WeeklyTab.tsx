@@ -15,7 +15,7 @@ interface WeeklyTabProps {
   onBackToOverview: () => void;
   onSelectDay: (dayIndex: number) => void;
   onNavigateToTab: (tabId: string) => void;
-  onExportWeek?: () => void;
+  onExportWeek?: (format: "csv" | "json") => void;
 }
 
 export default function WeeklyTab({
@@ -66,7 +66,6 @@ export default function WeeklyTab({
       
       {/* Quick Action Navigation links */}
       <div className="grid grid-cols-2 gap-3 mb-3">
-
         <button
           id="weekly-btn-goto-meals"
           onClick={() => onNavigateToTab("meals")}
@@ -76,7 +75,6 @@ export default function WeeklyTab({
           <span className="text-xs font-bold uppercase tracking-wider text-white">Meal Plan & PDFs</span>
           <span className="text-[10px] text-zinc-400 mt-1 font-mono uppercase">Week {selectedWeekNum} files</span>
         </button>
-
         <button
           id="weekly-btn-goto-checkin"
           onClick={() => onNavigateToTab("progress")}
@@ -87,6 +85,25 @@ export default function WeeklyTab({
           <span className="text-[10px] text-zinc-400 mt-1 font-mono uppercase">
             {isCompletedCheckin ? "Status: Logged" : "Status: Pending"}
           </span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <button
+          onClick={() => onExportWeek?.("csv")}
+          className="flex flex-col items-start p-4 apple-card hover:border-white/20 text-left transition-colors"
+        >
+          <FileText className="w-5 h-5 text-white mb-2" />
+          <span className="text-xs font-bold uppercase tracking-wider text-white">Export CSV</span>
+          <span className="text-[10px] text-zinc-400 mt-1 font-mono uppercase">Spreadsheet Format</span>
+        </button>
+        <button
+          onClick={() => onExportWeek?.("json")}
+          className="flex flex-col items-start p-4 apple-card hover:border-white/20 text-left transition-colors"
+        >
+          <FileText className="w-5 h-5 text-white mb-2" />
+          <span className="text-xs font-bold uppercase tracking-wider text-white">Export JSON</span>
+          <span className="text-[10px] text-zinc-400 mt-1 font-mono uppercase">Data Format</span>
         </button>
       </div>
 

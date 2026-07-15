@@ -230,6 +230,118 @@ export default function App() {
     saveExerciseSwaps(updated);
   };
 
+
+
+  const handleExportWeek = (weekNum: number, format: "csv" | "json") => {
+    const weekPlan = SEEDED_PLANS[weekNum - 1];
+    if (!weekPlan) return;
+    
+    // Build JSON export structure
+    const exportData: any = {
+      weekNumber: weekNum,
+      phase: weekPlan.isDeload ? "Deload" : "Training",
+      days: []
+    };
+
+    let csvLines: string[] = [];
+    csvLines.push("Week,Day,Exercise,Set,Weight,Reps,Duration,Steps,Assistance,Effort,Completed");
+
+    let hasData = false;
+
+    weekPlan.days.forEach((day, dayIdx) => {
+      const dayKey = `W${weekNum}-D${dayIdx}`;
+      const dayLogs = historicalLogs[dayKey] || {};
+      
+      const dayData = {
+        dayName: day.dayName,
+        agenda: day.name,
+        isCompleted: !!settings.completedDays[dayKey],
+        exercises: [] as any[]
+      };
+
+      day.exercises.forEach((ex) => {
+        const log = dayLogs[ex.id];
+        if (!log) return;
+
+        hasData = true;
+
+        const exName = typeof exerciseSwaps[ex.id] === 'string' ? exerciseSwaps[ex.id] : ((exerciseSwaps[ex.id] as any)?.name || ex.name);
+        
+        const exData = {
+          exerciseName: exName,
+          category: ex.category,
+          sets: log.sets ? log.sets : [log]
+        };
+        dayData.exercises.push(exData);
+
+        // Add to CSV
+        if (log.sets && log.sets.length > 0) {
+          log.sets.forEach((s: any) => {
+            csvLines.push(`"${weekNum}","${day.dayName}","${exName}","${s.setNumber || 1}","${s.weight || ''}","${s.reps || ''}","${s.duration || ''}","${s.steps || ''}","${s.assistance || ''}","${s.effort || ''}","${log.completed ? 'TRUE' : 'FALSE'}"`);
+          });
+        } else {
+          // Legacy single line
+          csvLines.push(`"${weekNum}","${day.dayName}","${exName}","1","${log.weight || ''}","${log.reps || ''}","${log.duration || ''}","${log.steps || ''}","${log.assistance || ''}","","${log.completed ? 'TRUE' : 'FALSE'}"`);
+        }
+      });
+      exportData.days.push(dayData);
+    });
+
+    if (!hasData) {
+      alert(`No workout data has been logged for Week ${weekNum}.`);
+      return;
+    }
+
+    try {
+      let fileData = "";
+      let fileName = "";
+      let mimeType = "";
+
+      if (format === "json") {
+        fileData = JSON.stringify(exportData, null, 2);
+        fileName = `week-${weekNum}-export.json`;
+        mimeType = "application/json";
+      } else {
+        fileData = csvLines.join('\n');
+        fileName = `week-${weekNum}-export.csv`;
+        mimeType = "text/csv";
+      }
+
+      // Handle File Sharing/Download
+      const shareData = {
+        title: `Lean & Strong Week ${weekNum} Workout Export`,
+        text: `Workout export for Week ${weekNum}`,
+        files: [
+          new File([fileData], fileName, { type: mimeType })
+        ]
+      };
+
+      if (navigator.canShare && navigator.canShare(shareData)) {
+        navigator.share(shareData).catch((err) => {
+          console.log("Share failed:", err);
+          fallbackDownload(fileData, fileName, mimeType);
+        });
+      } else {
+        fallbackDownload(fileData, fileName, mimeType);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Unable to export this week's workout data. Please try again.");
+    }
+  };
+
+  const fallbackDownload = (fileData: string, fileName: string, mimeType: string) => {
+    const blob = new Blob([fileData], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const handleResetExerciseSwap = (originalId: string) => {
     const updated = { ...exerciseSwaps };
     delete updated[originalId];
@@ -563,7 +675,7 @@ export default function App() {
               onBackToOverview={() => setSelectedWeekNum(0)}
               onSelectDay={handleSelectDayFromWeekly}
               onNavigateToTab={setActiveTab}
-              onExportWeek={() => handleExportWeek(selectedWeekNum)}
+              onExportWeek={(format) => handleExportWeek(selectedWeekNum, format)}
             />
           ) : (
             <OverviewTab
