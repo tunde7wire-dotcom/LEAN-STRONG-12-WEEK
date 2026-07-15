@@ -4,7 +4,9 @@
  */
 
 import React, { useState } from "react";
-import { ChevronLeft, Dumbbell, Timer, ArrowRight, RotateCcw, AlertCircle, ArrowRightLeft, Check, CheckSquare, Save } from "lucide-react";
+import { ChevronLeft, Dumbbell, Timer, ArrowRight, RotateCcw, AlertCircle, ArrowRightLeft, Check, CheckSquare, Save, Play } from "lucide-react";
+import ExerciseFormGuideModal from "./ExerciseFormGuideModal";
+import { getExerciseFormGuide, ExerciseFormGuide } from "../utils/exerciseFormGuides";
 import { WeekPlan, DayPlan, Exercise, BestSetLog, AppSettings, ActiveWorkoutState } from "../types";
 
 interface WorkoutTabProps {
@@ -216,6 +218,21 @@ export default function WorkoutTab({
   const [customSwapTracking, setCustomSwapTracking] = useState<import("../types").TrackingType>("load_reps");
   const [showBikeCompleted, setShowBikeCompleted] = useState(false);
 
+  // Form Guide Modal State
+  const [formGuideOpen, setFormGuideOpen] = useState(false);
+  const [activeGuideData, setActiveGuideData] = useState<ExerciseFormGuide | ExerciseFormGuide[] | null>(null);
+  const [activeGuideExerciseName, setActiveGuideExerciseName] = useState("");
+  const [activeGuideTempoCue, setActiveGuideTempoCue] = useState("");
+  const [activeGuideEffortCue, setActiveGuideEffortCue] = useState("");
+
+  const handleOpenFormGuide = (ex: Exercise, swapData: any, guideData: ExerciseFormGuide | ExerciseFormGuide[]) => {
+    setActiveGuideData(guideData);
+    setActiveGuideExerciseName(typeof swapData === 'string' ? swapData : (swapData?.name || ex.name));
+    setActiveGuideTempoCue(ex.tempoCue || "");
+    setActiveGuideEffortCue(ex.effortCue || "");
+    setFormGuideOpen(true);
+  };
+
   // Sync state to parent active workout
   const handleInputChange = (exerciseId: string, field: "weight" | "reps" | "duration" | "steps" | "assistance", value: string) => {
     const updated = {
@@ -394,6 +411,14 @@ export default function WorkoutTab({
           // Get presets for swapping
           const originalRootName = ex.originalName;
           const presetList = PRESET_SWAPS[originalRootName] || [];
+
+
+          // Form Guide Resolution
+          const formGuide = getExerciseFormGuide({
+            canonicalId: ex.canonicalId,
+            selectedSubstitutionId: typeof swapData === 'object' ? swapData.canonicalId : (typeof swapData === 'string' ? swapData : undefined),
+            resolvedExerciseName: currentName,
+          });
 
           return (
             <div
@@ -751,6 +776,17 @@ export default function WorkoutTab({
           This will update your progression metrics and log this day as completed.
         </p>
       </div>
+      {/* Form Guide Modal */}
+      {activeGuideData && (
+        <ExerciseFormGuideModal
+          isOpen={formGuideOpen}
+          onClose={() => setFormGuideOpen(false)}
+          guideData={activeGuideData}
+          originalExerciseName={activeGuideExerciseName}
+          tempoCue={activeGuideTempoCue}
+          effortCue={activeGuideEffortCue}
+        />
+      )}
     </div>
   );
 }
