@@ -110,12 +110,24 @@ export interface AppSettings {
   completedDays: Record<string, boolean>; // key: "W{week}-D{day}"
 }
 
+export type EffortRating = "easy" | "on_target" | "very_hard";
+
+export type WorkingSetLog = {
+  setNumber: number;
+  weight?: number;
+  reps?: number;
+  duration?: number;
+  assistance?: number;
+  effort?: EffortRating;
+  completed?: boolean;
+};
+
 export interface ActiveWorkoutState {
   weekNumber: number;
   dayIndex: number; // 0 to 6
   startTime: number; // timestamp
   elapsedSeconds: number;
-  logs: Record<string, { weight?: number; reps?: number; duration?: number; steps?: number; assistance?: number }>; // exerciseId -> { weight, reps, duration, steps, assistance }
+  logs: Record<string, { weight?: number; reps?: number; duration?: number; steps?: number; assistance?: number; sets?: WorkingSetLog[] }>; // exerciseId -> { weight, reps, duration, steps, assistance, sets }
   currentExerciseIndex: number;
   isActive: boolean;
   timerEndTime: number | null; // For persistent rest timer recovery
@@ -139,4 +151,4 @@ export interface StoredPDF {
   dataUrl: string; // base64 representation of the PDF for rendering and saving
 }
 
-export type HistoricalWorkoutLogs = Record<string, Record<string, { weight?: number; reps?: number; duration?: number; steps?: number; assistance?: number; completed?: boolean }>>;
+export type HistoricalWorkoutLogs = Record<string, Record<string, { weight?: number; reps?: number; duration?: number; steps?: number; assistance?: number; completed?: boolean; sets?: WorkingSetLog[] }>>;

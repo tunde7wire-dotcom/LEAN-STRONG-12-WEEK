@@ -15,6 +15,7 @@ interface WeeklyTabProps {
   onBackToOverview: () => void;
   onSelectDay: (dayIndex: number) => void;
   onNavigateToTab: (tabId: string) => void;
+  onExportWeek?: () => void;
 }
 
 export default function WeeklyTab({
@@ -25,6 +26,7 @@ export default function WeeklyTab({
   onBackToOverview,
   onSelectDay,
   onNavigateToTab,
+  onExportWeek,
 }: WeeklyTabProps) {
 
   const macros = weekPlan.nutrition.training; // reference training day macros for summary
@@ -61,8 +63,10 @@ export default function WeeklyTab({
         )}
       </div>
 
+      
       {/* Quick Action Navigation links */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      <div className="grid grid-cols-2 gap-3 mb-3">
+
         <button
           id="weekly-btn-goto-meals"
           onClick={() => onNavigateToTab("meals")}

@@ -247,7 +247,7 @@ export default function App() {
   };
 
   // Complete Active Workout
-  const handleCompleteActiveWorkout = (loggedSets: Record<string, { weight?: number; reps?: number; duration?: number; steps?: number; assistance?: number; completed?: boolean }>) => {
+  const handleCompleteActiveWorkout = (loggedSets: Record<string, { weight?: number; reps?: number; duration?: number; steps?: number; assistance?: number; completed?: boolean; sets?: import("./types").WorkingSetLog[] }>) => {
     const todayStr = getLocalTodayString();
     const newBestSetLogs = { ...bestSetLogs };
     const newWeeklyBestSetLogs = { ...weeklyBestSetLogs };
@@ -267,25 +267,37 @@ export default function App() {
         const progressKey = canonicalId || resolvedName;
         
         if (resolvedProgressMode === 'weekly_best') {
+          
           const getScore = (l: any) => {
             if (!l) return -1;
             if (resolvedTrackingType === 'duration') return l.duration || 0;
             if (resolvedTrackingType === 'steps') return l.steps || 0;
             if (resolvedTrackingType === 'reps_only') return l.reps || 0;
-            if (resolvedTrackingType === 'assistance_reps') return (l.assistance ? (1000 - l.assistance) : l.reps) || 0;
-            return (l.weight && l.weight > 0) ? (l.weight * 1000 + l.reps) : (l.reps || 0);
+            if (resolvedTrackingType === 'assistance_reps') return (l.assistance !== undefined ? (1000 - l.assistance) : l.reps) || 0;
+            return (l.weight && l.weight > 0) ? (l.weight * 1000 + (l.reps || 0)) : (l.reps || 0);
           };
+          
+          let bestLog = log;
+          if (log.sets && log.sets.length > 0) {
+            // Find best set among logged sets
+            const validSets = log.sets.filter((s: any) => s.weight !== undefined || s.reps !== undefined || s.duration !== undefined || s.assistance !== undefined || s.steps !== undefined);
+            if (validSets.length > 0) {
+              const sortedSets = [...validSets].sort((a, b) => getScore(b) - getScore(a));
+              bestLog = sortedSets[0] as any;
+            }
+          }
+          
+          const logScore = getScore(bestLog);
 
-          const logScore = getScore(log);
           
           const prev = bestSetLogs[progressKey];
           if (!prev || logScore > getScore(prev)) {
             newBestSetLogs[progressKey] = {
-              weight: log.weight || 0,
-              reps: log.reps || 0,
-              duration: log.duration,
-              steps: log.steps,
-              assistance: log.assistance,
+              weight: bestLog.weight || 0,
+              reps: bestLog.reps || 0,
+              duration: bestLog.duration,
+              steps: bestLog.steps,
+              assistance: bestLog.assistance,
               date: todayStr
             };
           }
@@ -299,11 +311,11 @@ export default function App() {
               weekNumber: selectedWeekNum,
               exerciseId: exId,
               exerciseName: progressKey,
-              weight: log.weight || 0,
-              reps: log.reps || 0,
-              duration: log.duration,
-              steps: log.steps,
-              assistance: log.assistance,
+              weight: bestLog.weight || 0,
+              reps: bestLog.reps || 0,
+              duration: bestLog.duration,
+              steps: bestLog.steps,
+              assistance: bestLog.assistance,
               date: todayStr
             };
           }
@@ -323,11 +335,23 @@ export default function App() {
     
     // Always validate required fields against entered logs
     dayPlan.exercises.forEach(ex => {
+      
       if (ex.required) {
         const log = loggedSets[ex.id];
-        if (!log) {
+        let hasData = false;
+        if (log) {
+          if (log.completed || log.weight !== undefined || log.reps !== undefined || log.duration !== undefined || log.steps !== undefined || log.assistance !== undefined) {
+            hasData = true;
+          }
+          if (log.sets && log.sets.some((s: any) => s.weight !== undefined || s.reps !== undefined || s.duration !== undefined || s.assistance !== undefined)) {
+            hasData = true;
+          }
+        }
+        
+        if (!hasData) {
           isDayComplete = false;
         } else {
+
           if (ex.minimumSteps && (log.steps || 0) < ex.minimumSteps) {
             isDayComplete = false;
             unmetStepTarget = true;
@@ -355,7 +379,8 @@ export default function App() {
         (log.duration !== undefined && !isNaN(log.duration)) ||
         (log.steps !== undefined && !isNaN(log.steps)) ||
         (log.assistance !== undefined && !isNaN(log.assistance)) ||
-        log.completed !== undefined
+        log.completed !== undefined ||
+        (log.sets && log.sets.length > 0)
       ) {
         validLogsForDay[exId] = { ...validLogsForDay[exId], ...log };
       }
@@ -538,6 +563,7 @@ export default function App() {
               onBackToOverview={() => setSelectedWeekNum(0)}
               onSelectDay={handleSelectDayFromWeekly}
               onNavigateToTab={setActiveTab}
+              onExportWeek={() => handleExportWeek(selectedWeekNum)}
             />
           ) : (
             <OverviewTab
