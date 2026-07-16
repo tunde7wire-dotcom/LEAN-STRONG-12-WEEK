@@ -7,6 +7,7 @@ import React, { useState } from "react";
 import { ChevronLeft, Dumbbell, Timer, ArrowRight, RotateCcw, AlertCircle, ArrowRightLeft, Check, CheckSquare, Save, Play } from "lucide-react";
 import ExerciseFormGuideModal from "./ExerciseFormGuideModal";
 import { getExerciseFormGuide, ExerciseFormGuide } from "../utils/exerciseFormGuides";
+import { hasMeaningfulWorkoutData } from "../utils/activeWorkoutHelpers";
 import { WeekPlan, DayPlan, Exercise, BestSetLog, AppSettings, ActiveWorkoutState } from "../types";
 
 interface WorkoutTabProps {
@@ -21,6 +22,7 @@ interface WorkoutTabProps {
   swaps: Record<string, import("../types").CustomExerciseSwap | string>;
   historicalLogs: import("../types").HistoricalWorkoutLogs;
   onSaveActiveWorkout: (state: ActiveWorkoutState | null) => void;
+  onDiscardWorkout: () => void;
   onCompleteWorkout: (logs: Record<string, { weight?: number; reps?: number; duration?: number; steps?: number; assistance?: number; completed?: boolean }>) => void;
   onTriggerRestTimer: () => void;
   onBackToWeekly: () => void;
@@ -169,6 +171,7 @@ export default function WorkoutTab({
   swaps,
   historicalLogs,
   onSaveActiveWorkout,
+  onDiscardWorkout,
   onCompleteWorkout,
   onTriggerRestTimer,
   onBackToWeekly,
@@ -219,6 +222,15 @@ export default function WorkoutTab({
   const [customSwapName, setCustomSwapName] = useState("");
   const [customSwapTracking, setCustomSwapTracking] = useState<import("../types").TrackingType>("load_reps");
   const [showBikeCompleted, setShowBikeCompleted] = useState(false);
+
+  const [showDiscardModal, setShowDiscardModal] = useState(false);
+
+  const handleConfirmDiscard = () => {
+    setLocalLogs({});
+    setShowDiscardModal(false);
+    onDiscardWorkout();
+  };
+
 
   // Form Guide Modal State
   const [formGuideOpen, setFormGuideOpen] = useState(false);
@@ -452,13 +464,23 @@ export default function WorkoutTab({
   return (
     <div id="workout-tracker-tab" className="max-w-md mx-auto px-4 pt-4 pb-[calc(7rem+env(safe-area-inset-bottom))]">
       {/* Back to week header */}
-      <button
-        id="workout-btn-back"
-        onClick={onBackToWeekly}
-        className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white mb-5 transition-colors font-mono font-bold uppercase tracking-wider"
-      >
-        <ChevronLeft className="w-4 h-4" /> Back to Week {selectedWeekNum}
-      </button>
+      <div className="flex justify-between items-center mb-5">
+        <button
+          id="workout-btn-back"
+          onClick={onBackToWeekly}
+          className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white transition-colors font-mono font-bold uppercase tracking-wider"
+        >
+          <ChevronLeft className="w-4 h-4" /> Back to Week {selectedWeekNum}
+        </button>
+        {activeWorkout && activeWorkout.weekNumber === selectedWeekNum && activeWorkout.dayIndex === dayIndex && hasMeaningfulWorkoutData(activeWorkout) && (
+          <button
+            onClick={() => setShowDiscardModal(true)}
+            className="text-[10px] font-mono font-bold text-red-400 hover:text-red-300 uppercase tracking-wider border border-red-500/20 bg-red-500/10 px-2 py-1 rounded"
+          >
+            Cancel Workout
+          </button>
+        )}
+      </div>
 
       {/* Hero Header */}
       <div className="mb-8 flex justify-between items-start">
@@ -762,12 +784,8 @@ export default function WorkoutTab({
                   /* Set-by-Set Logging for Strength / Weekly Best */
                   <div className="space-y-3">
                     {(() => {
-                      const prescribedSetsMatch = ex.sets?.match(/(d+)/g);
-                      let maxSets = 1;
-                      if (prescribedSetsMatch) {
-                        maxSets = Math.max(...prescribedSetsMatch.map(n => parseInt(n, 10)));
-                      }
-                      
+                      const prescribedSetNumbers = ex.sets?.match(/\d+/g)?.map(Number).filter(Number.isFinite) ?? [];
+                      const maxSets = prescribedSetNumbers.length > 0 ? Math.max(...prescribedSetNumbers) : 1;
                       const setsList = Array.from({ length: maxSets }, (_, i) => i);
                       
                       return setsList.map(setIdx => {
@@ -985,6 +1003,33 @@ export default function WorkoutTab({
           This will update your progression metrics and log this day as completed.
         </p>
       </div>
+
+      {/* Discard Modal */}
+      {showDiscardModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#1c1c1e] rounded-2xl w-full max-w-sm overflow-hidden border border-white/10 shadow-2xl">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-white mb-2">Discard this workout?</h3>
+              <p className="text-sm text-zinc-400">Your entries for this unfinished workout will be removed. Previously completed workouts will not be affected.</p>
+            </div>
+            <div className="flex border-t border-white/10 divide-x divide-white/10">
+              <button
+                onClick={() => setShowDiscardModal(false)}
+                className="flex-1 py-4 text-sm font-bold text-white hover:bg-white/5 transition-colors"
+              >
+                Keep Workout
+              </button>
+              <button
+                onClick={handleConfirmDiscard}
+                className="flex-1 py-4 text-sm font-bold text-red-500 hover:bg-white/5 transition-colors"
+              >
+                Discard Workout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Form Guide Modal */}
       {activeGuideData && (
         <ExerciseFormGuideModal

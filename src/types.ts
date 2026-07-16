@@ -127,7 +127,7 @@ export interface ActiveWorkoutState {
   dayIndex: number; // 0 to 6
   startTime: number; // timestamp
   elapsedSeconds: number;
-  logs: Record<string, { weight?: number; reps?: number; duration?: number; steps?: number; assistance?: number; sets?: WorkingSetLog[] }>; // exerciseId -> { weight, reps, duration, steps, assistance, sets }
+  logs: Record<string, { weight?: number; reps?: number; duration?: number; steps?: number; assistance?: number; completed?: boolean; sets?: WorkingSetLog[] }>; // exerciseId -> { weight, reps, duration, steps, assistance, sets }
   currentExerciseIndex: number;
   isActive: boolean;
   timerEndTime: number | null; // For persistent rest timer recovery

@@ -16,6 +16,7 @@ interface TodayTabProps {
   dayPlan: DayPlan;
   settings: AppSettings;
   planStatus?: 'pre-start' | 'active' | 'completed';
+  hasMeaningfulActiveWorkout?: boolean;
   elapsedDays?: number;
   onStartWorkout: () => void;
   onNavigateToTab: (tabId: string) => void;
@@ -32,6 +33,7 @@ export default function TodayTab({
   dayPlan,
   settings,
   planStatus = 'active',
+  hasMeaningfulActiveWorkout = false,
   elapsedDays = 0,
   onStartWorkout,
   onNavigateToTab,
@@ -84,7 +86,7 @@ export default function TodayTab({
   const fullChecklist = [
     {
       id: "workout",
-      title: dayPlan.exercises.length > 1 ? `Log Workout: ${dayPlan.name}` : `Active Recovery: ${dayPlan.name}`,
+      title: (hasMeaningfulActiveWorkout && planStatus === 'active' && dayPlan.exercises.length > 0) ? "Resume Workout" : (dayPlan.exercises.length > 1 ? `Log Workout: ${dayPlan.name}` : `Active Recovery: ${dayPlan.name}`),
       subtitle: dayPlan.isTrainingDay ? "Target strength set progression" : (dayPlan.exercises[0]?.name === "Steps Focus Only" ? "Active physical recovery & walk" : "Complete required active recovery"),
       completed: settings.completedDays[`W${currentWeekNum}-D${currentDayIndex}`] || false,
       action: undefined, // We'll handle workout row click separately

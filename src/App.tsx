@@ -22,6 +22,7 @@ import TodayTab from "./components/TodayTab";
 import OverviewTab from "./components/OverviewTab";
 import WeeklyTab from "./components/WeeklyTab";
 import WorkoutTab from "./components/WorkoutTab";
+import { hasMeaningfulWorkoutData } from "./utils/activeWorkoutHelpers";
 import MealsTab from "./components/MealsTab";
 import ProgressTab from "./components/ProgressTab";
 import SettingsTab from "./components/SettingsTab";
@@ -119,6 +120,14 @@ export default function App() {
     });
     return derived;
   };
+
+  
+  useEffect(() => {
+    if (activeWorkout && !hasMeaningfulWorkoutData(activeWorkout) && !activeWorkout.timerEndTime) {
+      setActiveWorkoutState(null);
+      saveActiveWorkout(null);
+    }
+  }, []);
 
   const derivedCompletedDays = getDerivedCompletedDays();
   const derivedSettings = { ...settings, completedDays: derivedCompletedDays };
@@ -542,6 +551,13 @@ export default function App() {
     setActiveTab("overview");
   };
 
+
+  const handleDiscardWorkout = () => {
+    setActiveWorkoutState(null);
+    saveActiveWorkout(null);
+    setTimerEndTime(null);
+  };
+
   // Handle active rest timers
   const handleTimerStart = (seconds: number) => {
     const endTime = Date.now() + seconds * 1000;
@@ -624,7 +640,7 @@ export default function App() {
         </div>
         
         {/* Active Workout Quick Indicator */}
-        {activeWorkout?.isActive && (
+        {hasMeaningfulWorkoutData(activeWorkout) && (
           <button 
             id="header-btn-active-workout"
             onClick={() => {
@@ -649,9 +665,12 @@ export default function App() {
             weekPlan={SEEDED_PLANS[liveWeekNum - 1] || SEEDED_PLANS[0]}
             dayPlan={(SEEDED_PLANS[liveWeekNum - 1] || SEEDED_PLANS[0]).days[liveDayIndex] || SEEDED_PLANS[0].days[0]}
             settings={derivedSettings}
+            
             planStatus={planStatus}
             elapsedDays={elapsedDays}
+            hasMeaningfulActiveWorkout={hasMeaningfulWorkoutData(activeWorkout) && activeWorkout?.weekNumber === liveWeekNum && activeWorkout?.dayIndex === liveDayIndex}
             onStartWorkout={() => {
+
               setSelectedWeekNum(liveWeekNum);
               setSelectedDayIndex(liveDayIndex);
               setActiveTab("workout");
@@ -705,8 +724,13 @@ export default function App() {
             historicalLogs={historicalLogs}
             onSaveActiveWorkout={handleSaveActiveWorkoutState}
             onCompleteWorkout={handleCompleteActiveWorkout}
+            onDiscardWorkout={handleDiscardWorkout}
             onTriggerRestTimer={handleTriggerRestTimer}
             onBackToWeekly={() => {
+              if (activeWorkout && !hasMeaningfulWorkoutData(activeWorkout) && !timerEndTime) {
+                setActiveWorkoutState(null);
+                saveActiveWorkout(null);
+              }
               setActiveTab("overview");
             }}
             onSaveExerciseSwap={handleSaveExerciseSwap}
