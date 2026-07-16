@@ -450,7 +450,7 @@ export default function WorkoutTab({
   const isCompletedDay = settings.completedDays[`W${selectedWeekNum}-D${dayIndex}`] || false;
 
   return (
-    <div id="workout-tracker-tab" className="max-w-md mx-auto px-4 pb-32 sm:pb-28 pt-4">
+    <div id="workout-tracker-tab" className="max-w-md mx-auto px-4 pt-4 pb-[calc(7rem+env(safe-area-inset-bottom))]">
       {/* Back to week header */}
       <button
         id="workout-btn-back"
@@ -549,13 +549,13 @@ export default function WorkoutTab({
             <div
               id={`exercise-card-${ex.id}`}
               key={ex.id}
-              className={`apple-card p-4 sm:p-5 transition-all ${
+              className={`apple-card min-w-0 p-4 transition-all ${
                 (weightVal && repsVal) || hasAnySetData ? "border-white/20 bg-white/5" : "hover:border-white/20"
               }`}
             >
               {/* Card top banner */}
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-3">
-                <div className="flex-1 min-w-0">
+              <div className="flex flex-col gap-3 mb-4">
+                <div className="flex flex-col gap-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {ex.isSuperset && (
                       <span className="bg-white text-black font-mono font-extrabold text-[8px] px-1.5 py-0.5 rounded uppercase">
@@ -566,10 +566,10 @@ export default function WorkoutTab({
                       Target: {ex.sets} Sets x {ex.reps} Reps
                     </span>
                   </div>
-                  <h3 className="text-lg font-bold text-white mt-1 leading-tight flex items-center gap-1.5 flex-wrap">
-                    <span className="min-w-0 break-words">{currentName}</span>
+                  <h3 className="text-lg font-bold text-white leading-tight flex items-center gap-1.5 flex-wrap min-w-0">
+                    <span className="min-w-0 break-words flex-1">{currentName}</span>
                     {isSwapped && (
-                      <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-wider whitespace-nowrap">
+                      <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-wider whitespace-nowrap shrink-0">
                         (Swapped)
                       </span>
                     )}
@@ -676,15 +676,15 @@ export default function WorkoutTab({
 
               {/* Double Progression / Previous best set info */}
               {resolvedProgressMode === 'weekly_best' && (
-                <div className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-1">
+                <div className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 flex flex-col mb-4 gap-1 min-w-0">
                   <span className="text-[10px] font-mono text-zinc-500 uppercase font-bold tracking-wider">Progression Double Rule</span>
-                  <span className="text-xs font-mono font-bold text-zinc-300">
+                  <span className="text-xs font-mono font-bold text-zinc-300 min-w-0">
                     {prevBest ? (
-                      <span className="text-white break-words">
-                        {resolvedTrackingType === 'load_reps' && `Prev Best: ${prevBest.weight} ${settings.units === "imperial" ? "lbs" : "kg"} x ${prevBest.reps} reps`}
-                        {resolvedTrackingType === 'duration' && `Prev Best: ${prevBest.duration} ${ex.category === 'core' ? "sec" : "min"}`}
-                        {resolvedTrackingType === 'reps_only' && `Prev Best: ${prevBest.reps} reps`}
-                        {resolvedTrackingType === 'assistance_reps' && `Prev Best: -${prevBest.assistance} ${settings.units === "imperial" ? "lbs" : "kg"} x ${prevBest.reps} reps`}
+                      <span className="text-white break-words min-w-0 block">
+                        {resolvedTrackingType === 'load_reps' && `Previous Best: ${prevBest.weight} ${settings.units === "imperial" ? "lb" : "kg"} × ${prevBest.reps} reps`}
+                        {resolvedTrackingType === 'duration' && `Previous Best: ${prevBest.duration} ${ex.category === 'core' ? "sec" : "min"}`}
+                        {resolvedTrackingType === 'reps_only' && `Previous Best: ${prevBest.reps} reps`}
+                        {resolvedTrackingType === 'assistance_reps' && `Previous Best: -${prevBest.assistance} ${settings.units === "imperial" ? "lb" : "kg"} × ${prevBest.reps} reps`}
                       </span>
                     ) : (
                       "No best set history"
@@ -888,25 +888,25 @@ export default function WorkoutTab({
                             </div>
                                                         
                             {/* Effort Controls */}
-                            <div className="grid grid-cols-3 gap-1.5 w-full mt-1">
+                            <div className="grid grid-cols-3 gap-1 w-full mt-1 min-w-0">
                               <button
                                 onClick={() => handleSetInputChange(ex.id, setIdx, "effort", setLog.effort === "easy" ? "" : "easy")}
                                 aria-pressed={setLog.effort === "easy"}
-                                className={`min-w-0 text-[10px] font-mono font-bold py-2 rounded uppercase tracking-wider transition-all break-words leading-tight ${setLog.effort === "easy" ? "bg-emerald-500 text-black" : "bg-white/5 text-emerald-500 border border-emerald-500/30"}`}
+                                className={`min-w-0 text-[10px] font-mono font-bold py-2 min-h-[44px] rounded uppercase tracking-wider transition-all break-words leading-tight ${setLog.effort === "easy" ? "bg-emerald-500 text-black" : "bg-white/5 text-emerald-500 border border-emerald-500/30"}`}
                               >
                                 Easy
                               </button>
                               <button
                                 onClick={() => handleSetInputChange(ex.id, setIdx, "effort", setLog.effort === "on_target" ? "" : "on_target")}
                                 aria-pressed={setLog.effort === "on_target"}
-                                className={`min-w-0 text-[10px] font-mono font-bold py-2 px-0.5 sm:px-1 rounded uppercase tracking-wider transition-all break-words leading-tight ${setLog.effort === "on_target" ? "bg-yellow-500 text-black" : "bg-white/5 text-yellow-500 border border-yellow-500/30"}`}
+                                className={`min-w-0 text-[10px] font-mono font-bold py-2 min-h-[44px] px-0.5 sm:px-1 rounded uppercase tracking-wider transition-all break-words leading-tight ${setLog.effort === "on_target" ? "bg-yellow-500 text-black" : "bg-white/5 text-yellow-500 border border-yellow-500/30"}`}
                               >
                                 On Target
                               </button>
                               <button
                                 onClick={() => handleSetInputChange(ex.id, setIdx, "effort", setLog.effort === "very_hard" ? "" : "very_hard")}
                                 aria-pressed={setLog.effort === "very_hard"}
-                                className={`min-w-0 text-[10px] font-mono font-bold py-2 rounded uppercase tracking-wider transition-all break-words leading-tight ${setLog.effort === "very_hard" ? "bg-red-500 text-white" : "bg-white/5 text-red-500 border border-red-500/30"}`}
+                                className={`min-w-0 text-[10px] font-mono font-bold py-2 min-h-[44px] rounded uppercase tracking-wider transition-all break-words leading-tight ${setLog.effort === "very_hard" ? "bg-red-500 text-white" : "bg-white/5 text-red-500 border border-red-500/30"}`}
                               >
                                 Very Hard
                               </button>
