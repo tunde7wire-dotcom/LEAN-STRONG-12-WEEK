@@ -1,26 +1,7 @@
-<!doctype html>
-<html lang="en" class="bg-black">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>Lean & Strong • 12-Week Tracker</title>
-    
-    <!-- PWA configuration links -->
-    <link rel="manifest" href="./manifest.json" />
-    <meta name="theme-color" content="#000000" />
-    
-    <!-- iOS native app configurations -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="LeanStrong" />
-    <link rel="apple-touch-icon" href="./icon.png" />
-  </head>
-  <body class="bg-black text-white">
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+const fs = require('fs');
+let code = fs.readFileSync('index.html', 'utf8');
 
-    <!-- PWA Service Worker Registration -->
-    <script type="module">
+const swScript = `<script type="module">
       if (import.meta.env.PROD) {
         if ('serviceWorker' in navigator) {
           window.addEventListener('load', () => {
@@ -65,7 +46,9 @@
           }
         }
       }
-    </script>
-  </body>
-</html>
+    </script>`;
 
+code = code.replace(/<script>\s*if \('serviceWorker' in navigator\) {[\s\S]*?<\/script>/, swScript);
+
+fs.writeFileSync('index.html', code);
+console.log('patched index.html');

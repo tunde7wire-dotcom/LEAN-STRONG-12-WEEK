@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-const CACHE_NAME = "lean-strong-tracker-v2";
+const CACHE_NAME = "lean-strong-tracker-v3";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
@@ -49,6 +49,23 @@ self.addEventListener("fetch", (event) => {
   if (event.request.url.startsWith('blob:')) return;
   if (!event.request.url.startsWith('http')) return;
 
+  const url = new URL(event.request.url);
+  
+  // Do not cache or intercept development paths or API requests
+  if (
+    url.pathname.startsWith('/src/') ||
+    url.pathname.startsWith('/@vite/') ||
+    url.pathname.startsWith('/@react-refresh') ||
+    url.pathname.startsWith('/node_modules/.vite/') ||
+    url.searchParams.has('t') ||
+    url.pathname.endsWith('.ts') ||
+    url.pathname.endsWith('.tsx') ||
+    url.pathname.startsWith('/api/')
+  ) {
+    return;
+  }
+
+
   // Network-first for page navigations (HTML)
   if (event.request.mode === 'navigate') {
     event.respondWith(
@@ -73,26 +90,43 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Cache-first for immutable hashed assets (JS, CSS, images)
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).then((networkResponse) => {
-        // Only cache valid successful GET responses
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type === 'error') {
-          return networkResponse;
-        }
+  
+  const isHashedAsset = url.pathname.startsWith('/assets/') || url.pathname.match(/\.[a-f0-9]{8,}\.(js|css|woff2?|png|jpg|jpeg|svg)$/i);
 
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
+  if (isHashedAsset) {
+    // Cache-first for immutable hashed assets
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        return fetch(event.request).then((networkResponse) => {
+          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type === 'error') {
+            return networkResponse;
+          }
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+          return networkResponse;
         });
-        return networkResponse;
-      }).catch((err) => {
-        throw err;
-      });
-    })
-  );
+      })
+    );
+  } else {
+    // Network-first for other non-hashed resources
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          return caches.match(event.request);
+        })
+    );
+  }
 });
+
