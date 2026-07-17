@@ -131,6 +131,7 @@ export interface ActiveWorkoutState {
   currentExerciseIndex: number;
   isActive: boolean;
   timerEndTime: number | null; // For persistent rest timer recovery
+  timerRemainingSeconds?: number; // Paused remaining time
   timerDurationSeconds: number; // Current timer setting
 }
 

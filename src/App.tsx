@@ -136,6 +136,7 @@ export default function App() {
   // Timer State (Embedded in Bottom Floating Timer)
   const [timerEndTime, setTimerEndTime] = useState<number | null>(() => activeWorkout?.timerEndTime || null);
   const [timerDuration, setTimerDuration] = useState<number>(() => settings.timerDuration);
+  const [timerRemainingSeconds, setTimerRemainingSeconds] = useState<number>(() => activeWorkout?.timerRemainingSeconds ?? settings.timerDuration);
   const [timerOpen, setTimerOpen] = useState(false);
 
   const [planStatus, setPlanStatus] = useState<'pre-start' | 'active' | 'completed'>('active');
@@ -364,6 +365,7 @@ export default function App() {
     saveActiveWorkout(state);
     if (state) {
       setTimerEndTime(state.timerEndTime);
+      if (state.timerRemainingSeconds !== undefined) setTimerRemainingSeconds(state.timerRemainingSeconds);
     }
   };
 
@@ -564,16 +566,17 @@ export default function App() {
     setTimerEndTime(endTime);
     
     if (activeWorkout) {
-      const updated = { ...activeWorkout, timerEndTime: endTime };
+      const updated = { ...activeWorkout, timerEndTime: endTime, timerRemainingSeconds: seconds };
       setActiveWorkoutState(updated);
       saveActiveWorkout(updated);
     }
   };
 
-  const handleTimerPause = () => {
+  const handleTimerPause = (remainingSeconds: number) => {
     setTimerEndTime(null);
+    setTimerRemainingSeconds(remainingSeconds);
     if (activeWorkout) {
-      const updated = { ...activeWorkout, timerEndTime: null };
+      const updated = { ...activeWorkout, timerEndTime: null, timerRemainingSeconds: remainingSeconds };
       setActiveWorkoutState(updated);
       saveActiveWorkout(updated);
     }
@@ -581,8 +584,20 @@ export default function App() {
 
   const handleTimerReset = () => {
     setTimerEndTime(null);
+    setTimerRemainingSeconds(settings.timerDuration);
     if (activeWorkout) {
-      const updated = { ...activeWorkout, timerEndTime: null };
+      const updated = { ...activeWorkout, timerEndTime: null, timerRemainingSeconds: settings.timerDuration };
+      setActiveWorkoutState(updated);
+      saveActiveWorkout(updated);
+    }
+  };
+
+  const handleTimerClose = () => {
+    setTimerEndTime(null);
+    setTimerRemainingSeconds(settings.timerDuration);
+    setTimerOpen(false);
+    if (activeWorkout) {
+      const updated = { ...activeWorkout, timerEndTime: null, timerRemainingSeconds: settings.timerDuration };
       setActiveWorkoutState(updated);
       saveActiveWorkout(updated);
     }
@@ -592,7 +607,7 @@ export default function App() {
     setTimerOpen(true);
     // Only start a new timer if one isn't currently running
     if (timerEndTime === null) {
-      handleTimerStart(settings.timerDuration);
+      handleTimerStart(timerRemainingSeconds);
     }
   };
 
@@ -774,9 +789,10 @@ export default function App() {
       {(timerOpen || timerEndTime !== null) && (
         <RestTimer
           durationSeconds={timerDuration}
+          remainingSeconds={timerRemainingSeconds}
           soundEnabled={settings.soundEnabled}
           onSoundToggle={(enabled) => handleUpdateSettings({ ...settings, soundEnabled: enabled })}
-          onClose={() => setTimerOpen(false)}
+          onClose={handleTimerClose}
           endTime={timerEndTime}
           onTimerStart={handleTimerStart}
           onTimerPause={handleTimerPause}

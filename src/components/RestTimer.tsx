@@ -8,18 +8,20 @@ import { Play, Pause, RotateCcw, Volume2, VolumeX, X, Minimize2, Maximize2 } fro
 
 interface RestTimerProps {
   durationSeconds: number;
+  remainingSeconds: number;
   onClose?: () => void;
   soundEnabled: boolean;
   onSoundToggle?: (enabled: boolean) => void;
   // Dynamic persistent states
   endTime: number | null;
   onTimerStart: (duration: number) => void;
-  onTimerPause: () => void;
+  onTimerPause: (remainingSeconds: number) => void;
   onTimerReset: () => void;
 }
 
 export default function RestTimer({
   durationSeconds,
+  remainingSeconds,
   onClose,
   soundEnabled,
   onSoundToggle,
@@ -65,16 +67,15 @@ export default function RestTimer({
   };
 
   // Sync state with endTime prop
+  
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
-
     if (endTime !== null) {
       setIsPaused(false);
       const updateTimer = () => {
         const now = Date.now();
         const diff = Math.max(0, Math.ceil((endTime - now) / 1000));
         setTimeLeft(diff);
-
         if (diff <= 0) {
           if (timerRef.current) clearInterval(timerRef.current);
           playBeep();
@@ -86,20 +87,20 @@ export default function RestTimer({
       timerRef.current = setInterval(updateTimer, 200);
     } else {
       setIsPaused(true);
-      setTimeLeft(durationSeconds);
+      setTimeLeft(remainingSeconds);
     }
-
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [endTime, durationSeconds]);
+  }, [endTime, remainingSeconds]);
+
 
   const handleStart = () => {
     onTimerStart(timeLeft > 0 ? timeLeft : durationSeconds);
   };
 
   const handlePause = () => {
-    onTimerPause();
+    onTimerPause(timeLeft);
   };
 
   const handleReset = () => {
@@ -148,7 +149,7 @@ export default function RestTimer({
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
           <h4 className="text-xs font-mono font-black uppercase tracking-widest text-zinc-300">
-            {isPaused ? "REST TIMER READY" : "RESTING"}
+            {isPaused ? (timeLeft < durationSeconds ? "PAUSED" : "REST TIMER READY") : "RESTING"}
           </h4>
         </div>
         <div className="flex items-center gap-1">
@@ -205,7 +206,7 @@ export default function RestTimer({
         {/* Action Controls */}
         <div className="flex-1">
           <div className="text-xs font-bold mb-3 text-zinc-300 uppercase tracking-wide leading-tight">
-            {isPaused ? "REHYDRATING & RECOVERY" : "FOCUS. NEXT SET IS CALLING."}
+            {isPaused ? (timeLeft < durationSeconds ? "PAUSED" : "REHYDRATING & RECOVERY") : "FOCUS. NEXT SET IS CALLING."}
           </div>
           <div className="flex gap-2">
             {isPaused ? (
@@ -215,7 +216,7 @@ export default function RestTimer({
                 className="flex-1 flex items-center justify-center gap-1.5 bg-white text-black font-extrabold text-[11px] py-2.5 px-3 rounded hover:bg-neutral-200 transition-colors uppercase tracking-wider"
               >
                 <Play className="w-3.5 h-3.5 fill-black text-black" />
-                Start
+                {timeLeft < durationSeconds ? "Resume" : "Start"}
               </button>
             ) : (
               <button
